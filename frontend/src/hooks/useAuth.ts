@@ -6,6 +6,7 @@ interface AuthState {
   isAuthenticated: boolean;
   role: UserRole;
   storeId: string | null;
+  storeName: string | null;
   loading: boolean;
 }
 
@@ -14,6 +15,7 @@ export const useAuth = () => {
     isAuthenticated: false,
     role: 'User',
     storeId: null,
+    storeName: null,
     loading: true,
   });
 
@@ -21,12 +23,14 @@ export const useAuth = () => {
     const token = localStorage.getItem('access_token');
     const role = localStorage.getItem('user_role') as UserRole;
     const storeId = localStorage.getItem('store_id');
+    const storeName = localStorage.getItem('store_name');
 
     if (token && role) {
       setAuth({
         isAuthenticated: true,
         role: role,
         storeId: storeId,
+        storeName: storeName,
         loading: false,
       });
     } else {
@@ -34,6 +38,7 @@ export const useAuth = () => {
         isAuthenticated: false,
         role: 'User',
         storeId: null,
+        storeName: null,
         loading: false,
       });
     }
@@ -43,10 +48,12 @@ export const useAuth = () => {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user_role');
     localStorage.removeItem('store_id');
+    localStorage.removeItem('store_name');
     setAuth({
       isAuthenticated: false,
       role: 'User',
       storeId: null,
+      storeName: null,
       loading: false,
     });
     window.location.href = '/login';

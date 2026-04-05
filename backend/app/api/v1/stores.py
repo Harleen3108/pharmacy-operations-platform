@@ -32,11 +32,11 @@ class StorePerformance(BaseModel):
     status: str # "online" | "offline"
     performance_level: str # "High" | "Average" | "Low"
 
-@router.get("/", response_model=List[StoreSchema])
+@router.get("", response_model=List[StoreSchema])
 def get_stores(db: Session = Depends(get_db)):
     return db.query(Store).all()
 
-@router.post("/", response_model=StoreSchema)
+@router.post("", response_model=StoreSchema)
 def create_store(store_in: StoreCreate, db: Session = Depends(get_db)):
     if db.query(Store).filter(Store.name == store_in.name).first():
         raise HTTPException(status_code=400, detail="Store name already exists")

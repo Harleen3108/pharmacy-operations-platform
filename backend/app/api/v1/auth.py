@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import Any
 from app.core.security import create_access_token, verify_password
 from app.db.session import get_db
-from app.models.models import User, Role
+from app.models.models import User, Role, Store
 
 router = APIRouter()
 
@@ -19,12 +19,14 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
         )
     
     role = db.query(Role).filter(Role.id == user.role_id).first()
+    store = db.query(Store).filter(Store.id == user.store_id).first()
     
     return {
         "access_token": create_access_token(subject=user.username),
         "token_type": "bearer",
         "role": role.name if role else "User",
-        "store_id": user.store_id
+        "store_id": user.store_id,
+        "store_name": store.name if store else "Main Branch"
     }
 
 @router.get("/me")
@@ -33,9 +35,11 @@ def get_me(user_name: str = "admin", db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     role = db.query(Role).filter(Role.id == user.role_id).first()
+    store = db.query(Store).filter(Store.id == user.store_id).first()
     return {
         "id": user.id, 
         "username": user.username, 
         "role": role.name if role else "User", 
-        "store_id": user.store_id
+        "store_id": user.store_id,
+        "store_name": store.name if store else "Main Branch"
     }

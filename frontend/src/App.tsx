@@ -32,6 +32,12 @@ const RoleRedirect = () => {
 
 import { DistrictAdminDashboard } from './pages/DistrictAdmin/DistrictAdminDashboard';
 import { StoreSupervisorDashboard } from './pages/StoreSupervisor/StoreSupervisorDashboard';
+import { SupervisorInventory } from './pages/StoreSupervisor/SupervisorInventory';
+import { ReplenishmentHistory } from './pages/StoreSupervisor/ReplenishmentHistory';
+import { BillingMonitor } from './pages/StoreSupervisor/BillingMonitor';
+import { SupervisorAnalytics } from './pages/StoreSupervisor/SupervisorAnalytics';
+import { StaffActivityLog } from './pages/StoreSupervisor/StaffActivityLog';
+import { SupervisorSettings } from './pages/StoreSupervisor/SupervisorSettings';
 import { PharmacistPanel } from './pages/Pharmacist/PharmacistPanel';
 import { BillingPanel } from './pages/Associate/BillingPanel';
 import { BillingHistory } from './pages/Associate/BillingHistory';
@@ -50,6 +56,12 @@ function App() {
           <Route path="/admin/stores" element={<Layout><StoreManagement /></Layout>} />
           <Route path="/admin/staff" element={<Layout><StaffManagement /></Layout>} />
           <Route path="/supervisor" element={<Layout><StoreSupervisorDashboard /></Layout>} />
+          <Route path="/supervisor/inventory" element={<Layout><SupervisorInventory /></Layout>} />
+          <Route path="/supervisor/transfers" element={<Layout><ReplenishmentHistory /></Layout>} />
+          <Route path="/supervisor/billing" element={<Layout><BillingMonitor /></Layout>} />
+          <Route path="/supervisor/analytics" element={<Layout><SupervisorAnalytics /></Layout>} />
+          <Route path="/supervisor/staff" element={<Layout><StaffActivityLog /></Layout>} />
+          <Route path="/supervisor/settings" element={<Layout><SupervisorSettings /></Layout>} />
           <Route path="/pharmacist" element={<Layout><PharmacistPanel /></Layout>} />
           
           <Route path="/billing" element={<Layout><BillingPanel /></Layout>} />

@@ -29,7 +29,7 @@ export const Login = () => {
     setError(null);
 
     const formData = new FormData();
-    formData.append('username', username);
+    formData.append('username', username.trim());
     formData.append('password', password);
 
     try {
@@ -38,6 +38,7 @@ export const Login = () => {
       localStorage.setItem('access_token', response.access_token);
       localStorage.setItem('user_role', response.role);
       localStorage.setItem('store_id', response.store_id);
+      localStorage.setItem('store_name', response.store_name);
       
       // Redirect based on role immediately
       switch (response.role) {

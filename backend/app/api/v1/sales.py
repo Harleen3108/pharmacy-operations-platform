@@ -45,8 +45,11 @@ class SaleResponse(BaseModel):
     timestamp: datetime
 
 @router.get("/", response_model=List[SaleHistoryResponse])
-def get_sales_history(db: Session = Depends(get_db)):
-    sales = db.query(Sale).order_by(Sale.created_at.desc()).all()
+def get_sales_history(store_id: Optional[int] = None, db: Session = Depends(get_db)):
+    query = db.query(Sale)
+    if store_id:
+        query = query.filter(Sale.store_id == store_id)
+    sales = query.order_by(Sale.created_at.desc()).all()
     
     response = []
     for s in sales:
@@ -143,9 +146,29 @@ def get_daily_summary(store_id: int, db: Session = Depends(get_db)):
                 prod = db.query(Product).filter(Product.id == inv.product_id).first()
                 top_product = prod.name if prod else "N/A"
 
+    # Staff Activity
+    staff_activity = []
+    if sales_today:
+        from app.models.models import User
+        activity_data = db.query(
+            User.full_name,
+            func.count(Sale.id).label('transactions'),
+            func.sum(Sale.total_amount).label('total_volume')
+        ).join(Sale, Sale.associate_id == User.id).filter(
+            Sale.id.in_([s.id for s in sales_today])
+        ).group_by(User.full_name).all()
+        
+        for name, count, volume in activity_data:
+            staff_activity.append({
+                "name": name,
+                "transactions": count,
+                "volume": float(volume)
+            })
+
     return {
         "total_sales": float(total_amount),
         "total_transactions": total_transactions,
         "top_product": top_product,
-        "prescription_sales": 0 # Placeholder for now
+        "prescription_sales": 0,
+        "staff_activity": staff_activity
     }

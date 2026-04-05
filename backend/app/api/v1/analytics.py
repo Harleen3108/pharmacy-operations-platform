@@ -9,17 +9,21 @@ from datetime import datetime, timedelta
 router = APIRouter()
 
 @router.get("/sales-trends")
-def get_sales_trends(db: Session = Depends(get_db)):
+def get_sales_trends(store_id: int = None, db: Session = Depends(get_db)):
     # Get last 7 days of sales
     seven_days_ago = datetime.now() - timedelta(days=7)
     
-    trends = db.query(
+    query = db.query(
         func.date(Sale.created_at).label('date'),
         func.sum(Sale.total_amount).label('amount'),
         func.count(Sale.id).label('transactions')
-    ).filter(Sale.created_at >= seven_days_ago)\
-     .group_by(func.date(Sale.created_at))\
-     .order_by(func.date(Sale.created_at)).all()
+    ).filter(Sale.created_at >= seven_days_ago)
+    
+    if store_id:
+        query = query.filter(Sale.store_id == store_id)
+        
+    trends = query.group_by(func.date(Sale.created_at))\
+      .order_by(func.date(Sale.created_at)).all()
     
     return [
         {"date": str(t.date), "amount": float(t.amount), "transactions": t.transactions}

@@ -47,15 +47,15 @@ export const salesService = {
     });
     return response.data;
   },
-  getAll: async () => {
-    const response = await apiClient.get('/sales');
+  getAll: async (storeId?: number) => {
+    const response = await apiClient.get('/sales/', { params: { store_id: storeId } });
     return response.data;
   },
 };
 
 export const analyticsService = {
-  getSalesTrends: async () => {
-    const response = await apiClient.get('/analytics/sales-trends');
+  getSalesTrends: async (storeId?: number) => {
+    const response = await apiClient.get('/analytics/sales-trends', { params: { store_id: storeId } });
     return response.data;
   },
   getStockHealth: async () => {
@@ -109,6 +109,21 @@ export const storesService = {
   },
   getStats: async () => {
     const response = await apiClient.get('/stores/stats');
+    return response.data;
+  }
+};
+
+export const transfersService = {
+  list: async (storeId: number) => {
+    const response = await apiClient.get('/transfers/', { params: { store_id: storeId } });
+    return response.data;
+  },
+  request: async (data: any) => {
+    const response = await apiClient.post('/transfers/', data);
+    return response.data;
+  },
+  process: async (id: number, status: string) => {
+    const response = await apiClient.patch(`/transfers/${id}/`, null, { params: { status } });
     return response.data;
   }
 };

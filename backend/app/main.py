@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import auth, inventory, sales, analytics, ai, users, roles, stores, prescriptions
+from app.api.v1 import auth, inventory, sales, analytics, ai, users, roles, stores, prescriptions, transfers
 from app.core.config import settings
 
 app = FastAPI(
@@ -9,10 +9,10 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Set up CORS
+# Set up CORS - Explicit origins required for credentialed requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -28,6 +28,7 @@ app.include_router(users.router, prefix="/api/v1/users", tags=["Staff Management
 app.include_router(roles.router, prefix="/api/v1/roles", tags=["Roles & Permissions"])
 app.include_router(stores.router, prefix="/api/v1/stores", tags=["Store Locations"])
 app.include_router(prescriptions.router, prefix="/api/v1/prescriptions", tags=["Clinical Services"])
+app.include_router(transfers.router, prefix="/api/v1/transfers", tags=["Replenishment"])
 
 @app.get("/")
 def read_root():

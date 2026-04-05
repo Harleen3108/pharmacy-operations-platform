@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { inventoryService, salesService, analyticsService, aiService, storesService, prescriptionService } from '../api/services';
+import { inventoryService, salesService, analyticsService, aiService, storesService, prescriptionService, transfersService } from '../api/services';
 
 export const useInventory = (query?: string, storeId?: number) => {
   return useQuery({
@@ -25,8 +25,8 @@ export const useSales = (storeId: number) => {
   });
 
   const history = useQuery({
-    queryKey: ['sales-history'],
-    queryFn: () => salesService.getAll(),
+    queryKey: ['sales-history', storeId],
+    queryFn: () => salesService.getAll(storeId),
   });
 
   const checkout = useMutation({
@@ -42,10 +42,10 @@ export const useSales = (storeId: number) => {
   return { summary, history, checkout };
 };
 
-export const useAnalytics = (days: number = 1) => {
+export const useAnalytics = (days: number = 1, storeId?: number) => {
   const trends = useQuery({
-    queryKey: ['sales-trends'],
-    queryFn: () => analyticsService.getSalesTrends(),
+    queryKey: ['sales-trends', storeId],
+    queryFn: () => analyticsService.getSalesTrends(storeId),
   });
 
   const health = useQuery({
@@ -146,4 +146,32 @@ export const usePrescriptions = (status: string = "pending") => {
   });
 
   return { list, validate, reject };
+};
+
+export const useTransfers = (storeId: number) => {
+  const queryClient = useQueryClient();
+
+  const list = useQuery({
+    queryKey: ['transfers', storeId],
+    queryFn: () => transfersService.list(storeId),
+    enabled: !!storeId
+  });
+
+  const request = useMutation({
+    mutationFn: (data: any) => transfersService.request(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transfers'] });
+    }
+  });
+
+  const process = useMutation({
+    mutationFn: ({ id, status }: { id: number, status: string }) => 
+      transfersService.process(id, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['transfers'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+    }
+  });
+
+  return { list, request, process };
 };

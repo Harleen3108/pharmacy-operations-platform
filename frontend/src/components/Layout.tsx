@@ -1,13 +1,17 @@
 import React from 'react';
 import { Sidebar } from './Sidebar';
 import { Bell, Search, Grid } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 export const Layout = ({ children }: { children: React.ReactNode }) => {
+  const { storeName } = useAuth();
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = React.useState(false);
+
   return (
     <div className="flex min-h-screen bg-[#F9FAFB] font-sans">
-      <Sidebar />
-      <div className="flex-1 flex flex-col">
-        <header className="h-20 bg-white border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-10">
+      <Sidebar isCollapsed={isSidebarCollapsed} onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
+      <div className="flex-1 flex flex-col transition-all duration-300">
+        <header className="h-20 bg-white border-b border-slate-100 px-8 flex items-center justify-between sticky top-0 z-10 text-outfit">
           <div className="flex-1 max-w-2xl">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
@@ -22,7 +26,7 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-[#D1FAE5] rounded-lg border border-emerald-100">
               <div className="w-2 h-2 bg-[#10B981] rounded-full"></div>
-              <span className="text-xs font-bold text-[#065F46]">Main Branch</span>
+              <span className="text-xs font-bold text-[#065F46]">{storeName || 'Main Branch'}</span>
             </div>
 
             <div className="flex items-center gap-1 ml-2">

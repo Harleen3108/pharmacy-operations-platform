@@ -10,14 +10,24 @@ import {
   FileCheck,
   Users,
   Receipt,
-  Building2
+  Building2,
+  RefreshCw,
+  UserCheck,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useAuth } from '../hooks/useAuth';
+import { motion } from 'framer-motion';
 
-export const Sidebar = () => {
-  const { role, logout } = useAuth();
+interface SidebarProps {
+  isCollapsed: boolean;
+  onToggle: () => void;
+}
+
+export const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
+  const { role, logout, storeName } = useAuth();
 
   const navItems = [
     { 
@@ -39,6 +49,36 @@ export const Sidebar = () => {
       roles: ['Store Supervisor']
     },
     { 
+      icon: Package, 
+      label: 'Inventory Control', 
+      path: '/supervisor/inventory',
+      roles: ['Store Supervisor']
+    },
+    { 
+      icon: RefreshCw, 
+      label: 'Stock Requests', 
+      path: '/supervisor/transfers',
+      roles: ['Store Supervisor']
+    },
+    { 
+      icon: ClipboardList, 
+      label: 'Billing Monitor', 
+      path: '/supervisor/billing',
+      roles: ['Store Supervisor']
+    },
+    { 
+      icon: LineChart, 
+      label: 'Store Analytics', 
+      path: '/supervisor/analytics',
+      roles: ['Store Supervisor']
+    },
+    { 
+      icon: UserCheck, 
+      label: 'Staff Activity', 
+      path: '/supervisor/staff',
+      roles: ['Store Supervisor']
+    },
+    { 
       icon: FileCheck, 
       label: 'Prescriptions', 
       path: '/pharmacist',
@@ -48,25 +88,19 @@ export const Sidebar = () => {
       icon: ClipboardList, 
       label: 'Billing / POS', 
       path: '/billing',
-      roles: ['Associate', 'Store Supervisor', 'District Admin', 'Pharmacist']
+      roles: ['Associate', 'District Admin', 'Pharmacist'] // Note: Removed Supervisor from generic POS, they use Monitor
     },
     { 
       icon: Receipt, 
       label: 'Billing History', 
       path: '/billing/history',
-      roles: ['Associate', 'Store Supervisor', 'District Admin', 'Pharmacist']
+      roles: ['Associate', 'District Admin', 'Pharmacist']
     },
     { 
       icon: Package, 
-      label: 'Inventory', 
+      label: 'Master Inventory', 
       path: '/inventory',
-      roles: ['Store Supervisor', 'District Admin', 'Pharmacist']
-    },
-    { 
-      icon: LineChart, 
-      label: 'AI Insights', 
-      path: '/ai',
-      roles: ['District Admin', 'Store Supervisor']
+      roles: ['District Admin', 'Pharmacist']
     },
     { 
       icon: Users, 
@@ -79,55 +113,93 @@ export const Sidebar = () => {
   const filteredItems = navItems.filter(item => item.roles.includes(role));
 
   return (
-    <aside className="w-72 bg-white text-slate-600 flex flex-col h-screen sticky top-0 border-r border-slate-100 shrink-0">
-      <div className="p-8 flex items-center gap-4">
-        <div className="w-10 h-10 bg-[#065F46] rounded-lg flex items-center justify-center text-white shadow-sm overflow-hidden">
+    <motion.aside 
+      initial={false}
+      animate={{ width: isCollapsed ? 80 : 256 }}
+      transition={{ type: 'spring', damping: 20, stiffness: 100 }}
+      className="bg-white text-slate-600 flex flex-col h-screen sticky top-0 border-r border-slate-100 shrink-0 relative"
+    >
+      {/* Toggle Slider Button */}
+      <button 
+        onClick={onToggle}
+        className="absolute -right-3.5 top-10 w-7 h-7 bg-white border border-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm z-20"
+      >
+        {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
+      </button>
+
+      <div className={cn("p-6 flex items-center gap-4 border-b border-slate-50", isCollapsed && "justify-center")}>
+        <div className="w-10 h-10 bg-[#065F46] rounded-lg flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden">
           <ShieldPlus className="w-6 h-6" />
         </div>
-        <div>
-          <h1 className="text-[#111827] font-extrabold text-lg leading-tight tracking-tight">Clinical Atelier</h1>
-          <p className="text-[10px] text-slate-400 font-bold tracking-[0.1em] uppercase">{role} HUB</p>
-        </div>
+        {!isCollapsed && (
+          <motion.div
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="overflow-hidden whitespace-nowrap"
+          >
+            <h1 className="text-[#111827] font-extrabold text-base leading-tight tracking-tight">Clinical Atelier</h1>
+            <p className="text-[9px] text-slate-400 font-bold tracking-[0.1em] uppercase">{role} @ {storeName || 'Main Branch'}</p>
+          </motion.div>
+        )}
       </div>
 
-      <nav className="flex-1 px-3 py-2 space-y-0.5">
+      <nav className="flex-1 px-3 py-6 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
         {filteredItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
+            title={isCollapsed ? item.label : ''}
             className={({ isActive }) => cn(
-              "flex items-center gap-2.5 px-3 py-2.5 rounded-lg transition-all font-bold text-xs",
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all font-bold text-xs group",
               isActive 
                 ? "bg-[#D1FAE5] text-[#065F46]" 
-                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
+                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+              isCollapsed && "justify-center"
             )}
           >
-            <item.icon className={cn("w-4 h-4")} />
-            <span>{item.label}</span>
+            <item.icon className={cn("w-4 h-4 shrink-0")} />
+            {!isCollapsed && (
+              <motion.span
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="whitespace-nowrap"
+              >
+                {item.label}
+              </motion.span>
+            )}
           </NavLink>
         ))}
       </nav>
 
-      <div className="mt-auto px-3 pb-6 space-y-0.5">
-        {role === 'Associate' && (
+      <div className="mt-auto px-3 pb-6 space-y-1">
+        {role === 'Associate' && !isCollapsed && (
           <button className="w-full flex items-center gap-2.5 px-3 py-3 bg-[#065F46] text-white rounded-lg font-bold text-xs shadow-lg shadow-emerald-900/10 hover:bg-[#047857] transition-all mb-4">
             <Plus className="w-4 h-4" />
             Quick Dispense
           </button>
         )}
 
-        <button className="w-full flex items-center gap-2.5 px-3 py-2.5 text-slate-500 hover:bg-slate-50 hover:text-slate-900 rounded-lg transition-all text-xs font-bold">
-          <Settings className="w-4 h-4" />
-          Settings
-        </button>
+        <NavLink 
+          to={role === 'Store Supervisor' ? '/supervisor/settings' : '#'}
+          title={isCollapsed ? 'Settings' : ''}
+          className={({ isActive }) => cn(
+            "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-xs font-bold",
+            isActive ? "bg-slate-100 text-[#065F46]" : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+            isCollapsed && "justify-center"
+          )}
+        >
+          <Settings className="w-4 h-4 shrink-0" />
+          {!isCollapsed && <span className="whitespace-nowrap">Settings</span>}
+        </NavLink>
         <button 
           onClick={logout}
-          className="w-full flex items-center gap-2.5 px-3 py-2.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-all text-xs font-bold"
+          title={isCollapsed ? 'Logout Session' : ''}
+          className={cn("w-full flex items-center gap-3 px-3 py-2.5 text-rose-500 hover:bg-rose-50 rounded-lg transition-all text-xs font-bold", isCollapsed && "justify-center")}
         >
-          <LogOut className="w-4 h-4" />
-          Logout Session
+          <LogOut className="w-4 h-4 shrink-0" />
+          {!isCollapsed && <span className="whitespace-nowrap">Logout Session</span>}
         </button>
       </div>
-    </aside>
+    </motion.aside>
   );
 };

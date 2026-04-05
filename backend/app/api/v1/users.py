@@ -33,7 +33,7 @@ class UserSchema(UserBase):
     class Config:
         from_attributes = True
 
-@router.get("/", response_model=List[UserSchema])
+@router.get("", response_model=List[UserSchema])
 def get_users(db: Session = Depends(get_db)):
     users = db.query(User).all()
     result = []
@@ -54,7 +54,7 @@ def get_users(db: Session = Depends(get_db)):
         result.append(user_dict)
     return result
 
-@router.post("/", response_model=UserSchema)
+@router.post("", response_model=UserSchema)
 def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
     # Check if user already exists
     existing_user = db.query(User).filter(User.username == user_data.username).first()
@@ -111,6 +111,6 @@ def delete_user(user_id: int, db: Session = Depends(get_db)):
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
         
-    db_user.is_active = False
+    db.delete(db_user)
     db.commit()
-    return {"status": "success", "message": "User deactivated"}
+    return {"status": "success", "message": "User permanently deleted"}

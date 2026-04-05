@@ -50,7 +50,7 @@ export const useStaff = () => {
     },
   });
 
-  const deactivateStaff = useMutation({
+  const deleteStaff = useMutation({
     mutationFn: async (id: number) => {
       const response = await axios.delete(`${API_BASE_URL}/users/${id}`);
       return response.data;
@@ -60,5 +60,5 @@ export const useStaff = () => {
     },
   });
 
-  return { users, roles, stores, createStaff, updateStaff, deactivateStaff };
+  return { users, roles, stores, createStaff, updateStaff, deleteStaff };
 };

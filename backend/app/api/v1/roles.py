@@ -14,6 +14,6 @@ class RoleSchema(BaseModel):
     class Config:
         from_attributes = True
 
-@router.get("/", response_model=List[RoleSchema])
+@router.get("", response_model=List[RoleSchema])
 def get_roles(db: Session = Depends(get_db)):
     return db.query(Role).all()

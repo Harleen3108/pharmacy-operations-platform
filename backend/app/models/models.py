@@ -108,3 +108,17 @@ class Prescription(Base):
     pharmacist_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     validated_at = Column(DateTime, nullable=True)
+class StockTransfer(Base):
+    __tablename__ = "stock_transfers"
+    id = Column(Integer, primary_key=True, index=True)
+    product_id = Column(Integer, ForeignKey("products.id"))
+    from_store_id = Column(Integer, ForeignKey("stores.id"))
+    to_store_id = Column(Integer, ForeignKey("stores.id"))
+    quantity = Column(Integer, nullable=False)
+    status = Column(String(50), default="pending") # pending, approved, shipped, received, cancelled
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, onupdate=func.now())
+
+    product = relationship("Product")
+    from_store = relationship("Store", foreign_keys=[from_store_id])
+    to_store = relationship("Store", foreign_keys=[to_store_id])
