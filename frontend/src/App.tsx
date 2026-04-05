@@ -6,8 +6,37 @@ import { Sales } from './pages/Sales';
 import { AI } from './pages/AI';
 import { Login } from './pages/Login';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { useAuth } from './hooks/useAuth';
 
 const queryClient = new QueryClient();
+
+const RoleRedirect = () => {
+  const { role, isAuthenticated, loading } = useAuth();
+
+  if (loading) return null;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+
+  switch (role) {
+    case 'District Admin':
+      return <Navigate to="/admin" replace />;
+    case 'Store Supervisor':
+      return <Navigate to="/supervisor" replace />;
+    case 'Pharmacist':
+      return <Navigate to="/pharmacist" replace />;
+    case 'Associate':
+      return <Navigate to="/billing" replace />;
+    default:
+      return <Dashboard />;
+  }
+};
+
+import { DistrictAdminDashboard } from './pages/DistrictAdmin/DistrictAdminDashboard';
+import { StoreSupervisorDashboard } from './pages/StoreSupervisor/StoreSupervisorDashboard';
+import { PharmacistPanel } from './pages/Pharmacist/PharmacistPanel';
+import { BillingPanel } from './pages/Associate/BillingPanel';
+import { BillingHistory } from './pages/Associate/BillingHistory';
+import { StaffManagement } from './pages/DistrictAdmin/StaffManagement';
+import { StoreManagement } from './pages/DistrictAdmin/StoreManagement';
 
 function App() {
   return (
@@ -15,7 +44,17 @@ function App() {
       <Router>
         <Routes>
           {/* Main App Layout */}
-          <Route path="/" element={<Layout><Dashboard /></Layout>} />
+          <Route path="/" element={<RoleRedirect />} />
+          
+          <Route path="/admin" element={<Layout><DistrictAdminDashboard /></Layout>} />
+          <Route path="/admin/stores" element={<Layout><StoreManagement /></Layout>} />
+          <Route path="/admin/staff" element={<Layout><StaffManagement /></Layout>} />
+          <Route path="/supervisor" element={<Layout><StoreSupervisorDashboard /></Layout>} />
+          <Route path="/pharmacist" element={<Layout><PharmacistPanel /></Layout>} />
+          
+          <Route path="/billing" element={<Layout><BillingPanel /></Layout>} />
+          <Route path="/billing/history" element={<Layout><BillingHistory /></Layout>} />
+          
           <Route path="/inventory" element={<Layout><Inventory /></Layout>} />
           <Route path="/sales" element={<Layout><Sales /></Layout>} />
           <Route path="/ai" element={<Layout><AI /></Layout>} />

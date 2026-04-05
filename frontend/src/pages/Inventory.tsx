@@ -23,12 +23,32 @@ export const Inventory = () => {
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isAdjustModalOpen, setIsAdjustModalOpen] = useState(false);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [adjustmentTarget, setAdjustmentTarget] = useState<any>(null);
   
   const { data: products, isLoading } = useInventory(searchQuery);
   const { addBatch, updateStock } = useInventoryMutation();
 
-  const displayProducts = products || [];
+  const getStockStatus = (item: any) => {
+    const today = new Date();
+    const ninetyDaysFromNow = new Date();
+    ninetyDaysFromNow.setDate(today.getDate() + 90);
+
+    const hasExpired = item.batches?.some((b: any) => new Date(b.expiry_date) <= today);
+    if (hasExpired) return 'EXPIRED';
+
+    const isLowStock = item.stock_level <= (item.reorder_level || 10);
+    if (isLowStock) return 'LOW_STOCK';
+
+    const isNearExpiry = item.batches?.some((b: any) => new Date(b.expiry_date) <= ninetyDaysFromNow);
+    if (isNearExpiry) return 'NEAR_EXPIRY';
+
+    return 'HEALTHY';
+  };
+
+  const displayProducts = (products || []).filter((item: any) => 
+    activeCategory === 'All Inventory' || item.category === activeCategory
+  );
   
   // Update selection if not set
   if (!selectedProduct && displayProducts.length > 0) {
@@ -103,11 +123,16 @@ export const Inventory = () => {
                 displayProducts.map((item: any) => (
                     <div 
                         key={item.id} 
-                        onClick={() => setSelectedProduct(item)}
+                        onClick={() => {
+                            setSelectedProduct(item);
+                            setIsDetailModalOpen(true);
+                        }}
                         className={cn(
                             "bg-white p-6 rounded-xl border-l-4 shadow-sm hover:shadow-md transition-all cursor-pointer group flex justify-between items-center",
-                            selectedProduct?.id === item.id ? "border-l-[#065F46] ring-2 ring-emerald-500/5 ring-inset" : "border-l-transparent",
-                            item.stock_level <= 20 ? "border-l-orange-500" : "border-l-emerald-500"
+                            selectedProduct?.id === item.id ? "border-l-[#065F46] ring-2 ring-emerald-500/5 ring-inset" : 
+                            getStockStatus(item) === 'EXPIRED' ? "border-l-rose-500" :
+                            getStockStatus(item) === 'LOW_STOCK' ? "border-l-rose-400" :
+                            getStockStatus(item) === 'NEAR_EXPIRY' ? "border-l-amber-500" : "border-l-transparent"
                         )}
                     >
                         <div className="space-y-4 flex-1">
@@ -135,12 +160,19 @@ export const Inventory = () => {
                             <div className="flex items-center gap-2">
                             <div className={cn(
                                 "w-2 h-2 rounded-full",
-                                item.stock_level <= 20 ? "bg-orange-500" : "bg-emerald-500"
+                                getStockStatus(item) === 'EXPIRED' || getStockStatus(item) === 'LOW_STOCK' ? "bg-rose-500" :
+                                getStockStatus(item) === 'NEAR_EXPIRY' ? "bg-amber-500" : "bg-emerald-500"
                             )} />
                             <span className={cn(
                                 "text-xs font-bold",
-                                item.stock_level <= 20 ? "text-orange-600" : "text-emerald-600"
-                            )}>{item.stock_level <= 20 ? "Low Stock Alert" : "Healthy Stock"}</span>
+                                getStockStatus(item) === 'EXPIRED' ? "text-rose-600" :
+                                getStockStatus(item) === 'LOW_STOCK' ? "text-rose-500" :
+                                getStockStatus(item) === 'NEAR_EXPIRY' ? "text-amber-600" : "text-emerald-600"
+                            )}>
+                                {getStockStatus(item) === 'EXPIRED' ? "Expired Batch Alert" :
+                                 getStockStatus(item) === 'LOW_STOCK' ? "Reorder Triggered" :
+                                 getStockStatus(item) === 'NEAR_EXPIRY' ? "Expiring Within 90 Days" : "Optimal Stock"}
+                            </span>
                             </div>
                         </div>
                         </div>
@@ -198,8 +230,13 @@ export const Inventory = () => {
                                     </span>
                                 </div>
                                 <div className="flex items-center gap-4 text-[10px] text-slate-400 font-bold uppercase tracking-tighter">
-                                    <span>Exp: {new Date(batch.expiry_date).toLocaleDateString()}</span>
-                                    <span className="text-emerald-700">$ {batch.selling_price.toFixed(2)} / unit</span>
+                                    <span className={cn(
+                                        new Date(batch.expiry_date) <= new Date() ? "text-rose-600" :
+                                        new Date(batch.expiry_date) <= new Date(new Date().setDate(new Date().getDate() + 90)) ? "text-amber-600" : "text-slate-400"
+                                    )}>
+                                        Exp: {new Date(batch.expiry_date).toLocaleDateString()}
+                                    </span>
+                                    <span className="text-emerald-700">₹ {batch.selling_price.toFixed(2)} / unit</span>
                                 </div>
                             </div>
                             <div className="flex gap-3 items-center">
@@ -301,6 +338,117 @@ export const Inventory = () => {
                   </div>
               </Modal>
           )}
+
+          {isDetailModalOpen && selectedProduct && (
+              <Modal 
+                title="Clinical Inventory Pulse" 
+                onClose={() => setIsDetailModalOpen(false)}
+                className="max-w-4xl"
+              >
+                  <div className="flex flex-col">
+                      <div className={cn(
+                          "p-8 text-white relative h-48 flex flex-col justify-end",
+                          getStockStatus(selectedProduct) === 'EXPIRED' ? "bg-rose-600" :
+                          getStockStatus(selectedProduct) === 'LOW_STOCK' ? "bg-rose-500" :
+                          getStockStatus(selectedProduct) === 'NEAR_EXPIRY' ? "bg-amber-500" : "bg-[#065F46]"
+                      )}>
+                          <div className="relative z-10">
+                              <div className="flex items-center gap-3 mb-2">
+                                  <span className="text-[10px] font-black tracking-[0.2em] uppercase bg-white/20 px-2 py-1 rounded">Asset Detail</span>
+                                  <span className="text-[10px] font-black tracking-[0.2em] uppercase bg-white/20 px-2 py-1 rounded">SKU: {selectedProduct.id}2026</span>
+                              </div>
+                              <h2 className="text-4xl font-black tracking-tight">{selectedProduct.name}</h2>
+                              <p className="text-white/70 font-semibold">{selectedProduct.generic_name}</p>
+                          </div>
+                          <div className="absolute top-0 right-0 p-8 opacity-10">
+                              <Plus className="w-32 h-32" />
+                          </div>
+                      </div>
+
+                      <div className="p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
+                          <div className="lg:col-span-2 space-y-8">
+                              <div className="grid grid-cols-3 gap-4">
+                                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Total On-Hand</p>
+                                      <p className="text-2xl font-black text-[#111827]">{selectedProduct.stock_level}</p>
+                                  </div>
+                                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Active Batches</p>
+                                      <p className="text-2xl font-black text-[#111827]">{selectedProduct.batches?.length || 0}</p>
+                                  </div>
+                                  <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Reorder Point</p>
+                                      <p className="text-2xl font-black text-emerald-600">{selectedProduct.reorder_level || 10}</p>
+                                  </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                  <h4 className="text-xs font-black text-slate-400 uppercase tracking-[0.2em]">Clinical Batch Ledger</h4>
+                                  <div className="border border-slate-100 rounded-2xl overflow-hidden">
+                                      <table className="w-full text-left">
+                                          <thead className="bg-slate-50">
+                                              <tr>
+                                                  <th className="px-6 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">Identifier</th>
+                                                  <th className="px-6 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">Quant.</th>
+                                                  <th className="px-6 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">Expiration</th>
+                                                  <th className="px-6 py-3 text-[9px] font-black text-slate-400 uppercase tracking-widest">Status</th>
+                                              </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-slate-50">
+                                              {selectedProduct.batches?.map((batch: any) => (
+                                                  <tr key={batch.id} className="hover:bg-slate-50/50 transition-colors">
+                                                      <td className="px-6 py-4 text-xs font-black text-[#111827]">{batch.batch_number}</td>
+                                                      <td className="px-6 py-4 text-xs font-bold">{batch.current_quantity}</td>
+                                                      <td className="px-6 py-4">
+                                                          <span className={cn(
+                                                              "text-xs font-bold",
+                                                              new Date(batch.expiry_date) <= new Date() ? "text-rose-600" :
+                                                              new Date(batch.expiry_date) <= new Date(new Date().setDate(new Date().getDate() + 90)) ? "text-amber-600" : "text-slate-600"
+                                                          )}>
+                                                              {new Date(batch.expiry_date).toLocaleDateString()}
+                                                          </span>
+                                                      </td>
+                                                      <td className="px-6 py-4">
+                                                          <div className={cn(
+                                                              "w-2 h-2 rounded-full",
+                                                              new Date(batch.expiry_date) <= new Date() ? "bg-rose-500" : "bg-emerald-500"
+                                                          )} />
+                                                      </td>
+                                                  </tr>
+                                              ))}
+                                          </tbody>
+                                      </table>
+                                  </div>
+                              </div>
+                          </div>
+
+                          <div className="space-y-6">
+                              <div className="bg-[#111827] p-6 rounded-2xl text-white">
+                                  <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-4">Storage Intelligence</h4>
+                                  <div className="space-y-4">
+                                      <div className="flex justify-between items-center text-xs font-bold">
+                                          <span className="text-slate-400">Category</span>
+                                          <span>{selectedProduct.category || 'Pharma'}</span>
+                                      </div>
+                                      <div className="flex justify-between items-center text-xs font-bold">
+                                          <span className="text-slate-400">Prescription</span>
+                                          <span className={selectedProduct.is_prescription_required ? "text-rose-400" : "text-emerald-400"}>
+                                              {selectedProduct.is_prescription_required ? "Required" : "OTC"}
+                                          </span>
+                                      </div>
+                                  </div>
+                              </div>
+                              <button 
+                                onClick={handleExport}
+                                className="w-full py-4 bg-slate-100 text-slate-600 font-black text-[10px] uppercase tracking-[0.2em] rounded-xl hover:bg-slate-200 transition-all flex items-center justify-center gap-2"
+                              >
+                                  <Download className="w-4 h-4" /> Download Audit
+                              </button>
+                          </div>
+                      </div>
+                  </div>
+              </Modal>
+          )}
       </AnimatePresence>
     </div>
   );
@@ -354,7 +502,7 @@ const AddBatchForm = ({ productId, onSuccess, mutation }: any) => {
                     />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Security Expiry</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Expiry Date</label>
                     <input 
                         type="date" required
                         onChange={e => setFormData({...formData, expiry_date: e.target.value})}
@@ -362,7 +510,7 @@ const AddBatchForm = ({ productId, onSuccess, mutation }: any) => {
                     />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Cost Price ($)</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Cost Price (₹)</label>
                     <input 
                         type="number" step="0.01" required
                         onChange={e => setFormData({...formData, cost_price: parseFloat(e.target.value)})}
@@ -370,7 +518,7 @@ const AddBatchForm = ({ productId, onSuccess, mutation }: any) => {
                     />
                 </div>
                 <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Clinical MSRP ($)</label>
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest pl-1">Clinical MSRP (₹)</label>
                     <input 
                         type="number" step="0.01" required
                         onChange={e => setFormData({...formData, selling_price: parseFloat(e.target.value)})}

@@ -85,7 +85,7 @@ export const Dashboard = () => {
             <StatCard 
               icon={DollarSign} 
               label="Daily Sales" 
-              value={`$${dailyTotal.toLocaleString()}`} 
+              value={`₹${dailyTotal.toLocaleString()}`} 
               badge="+12% vs LW" 
               isLoading={summary.isLoading}
             />

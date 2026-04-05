@@ -19,14 +19,49 @@ class SaleCreate(BaseModel):
     associate_id: int
     items: List[SaleItemCreate]
     total_amount: float
+    customer_name: Optional[str] = None
+    customer_mobile: Optional[str] = None
     payment_method: str = "cash"
     prescription_id: Optional[int] = None
+
+class SaleHistoryResponse(BaseModel):
+    id: int
+    transaction_id: str
+    customer_name: Optional[str]
+    customer_mobile: Optional[str]
+    payment_method: str
+    total_amount: float
+    status: str
+    created_at: datetime
+    store_name: str
+
+    class Config:
+        from_attributes = True
 
 class SaleResponse(BaseModel):
     id: int
     status: str
     transaction_id: str
     timestamp: datetime
+
+@router.get("/", response_model=List[SaleHistoryResponse])
+def get_sales_history(db: Session = Depends(get_db)):
+    sales = db.query(Sale).order_by(Sale.created_at.desc()).all()
+    
+    response = []
+    for s in sales:
+        response.append({
+            "id": s.id,
+            "transaction_id": f"TXN-{s.id:06}-{s.created_at.strftime('%Y%m%d')}",
+            "customer_name": s.customer_name,
+            "customer_mobile": s.customer_mobile,
+            "payment_method": s.payment_method,
+            "total_amount": float(s.total_amount),
+            "status": s.status,
+            "created_at": s.created_at,
+            "store_name": s.store.name if s.store else "Unknown Store"
+        })
+    return response
 
 @router.post("/create", response_model=SaleResponse)
 def create_sale(sale_data: SaleCreate, db: Session = Depends(get_db)):
@@ -35,28 +70,39 @@ def create_sale(sale_data: SaleCreate, db: Session = Depends(get_db)):
         store_id=sale_data.store_id,
         associate_id=sale_data.associate_id,
         total_amount=sale_data.total_amount,
+        customer_name=sale_data.customer_name,
+        customer_mobile=sale_data.customer_mobile,
+        payment_method=sale_data.payment_method,
         status="completed"
     )
     db.add(new_sale)
-    db.flush() # Get new_sale.id
+    db.flush() 
 
     # 2. Process items and update stock
     for item in sale_data.items:
-        batch = db.query(Batch).filter(Batch.id == item.batch_id).first()
-        if not batch or batch.current_quantity < item.quantity:
+        # Check if batch belongs to the store
+        batch = db.query(Batch).join(Inventory).filter(
+            Batch.id == item.batch_id,
+            Inventory.store_id == sale_data.store_id
+        ).first()
+
+        if not batch:
             db.rollback()
-            raise HTTPException(status_code=400, detail=f"Insufficient stock for batch {item.batch_id}")
+            raise HTTPException(status_code=400, detail=f"Batch {item.batch_id} not found in this store")
+            
+        if batch.current_quantity < item.quantity:
+            db.rollback()
+            raise HTTPException(status_code=400, detail=f"Insufficient stock for batch {item.batch_id}. Available: {batch.current_quantity}")
         
-        # Decrement stock
+        # Reduce Stock
         batch.current_quantity -= item.quantity
         
-        # Create SaleItem
         sale_item = SaleItem(
             sale_id=new_sale.id,
             batch_id=batch.id,
             quantity=item.quantity,
-            unit_price=item.unit_price,
-            subtotal=item.quantity * item.unit_price
+            unit_price=batch.selling_price,
+            subtotal=float(batch.selling_price) * item.quantity
         )
         db.add(sale_item)
 

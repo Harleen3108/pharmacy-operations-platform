@@ -24,6 +24,7 @@ class ProductSchema(BaseModel):
     category: Optional[str]
     is_prescription_required: bool
     stock_level: Optional[int] = 0
+    reorder_level: Optional[int] = 10
     batches: List[BatchSchema] = []
     class Config:
         from_attributes = True
@@ -37,7 +38,7 @@ class BatchCreate(BaseModel):
     quantity: int
 
 @router.get("/search", response_model=List[ProductSchema])
-def search_products(query: Optional[str] = None, db: Session = Depends(get_db)):
+def search_products(query: Optional[str] = None, store_id: Optional[int] = None, db: Session = Depends(get_db)):
     db_query = db.query(Product)
     if query:
         db_query = db_query.filter(
@@ -48,10 +49,15 @@ def search_products(query: Optional[str] = None, db: Session = Depends(get_db)):
     
     products = db_query.all()
     
-    # Calculate stock level and fetch batches
+    # Calculate stock level and fetch batches for specific store
     result = []
     for p in products:
-        inv = db.query(Inventory).filter(Inventory.product_id == p.id).first()
+        # Filter Inventory by store_id if provided
+        inv_query = db.query(Inventory).filter(Inventory.product_id == p.id)
+        if store_id:
+            inv_query = inv_query.filter(Inventory.store_id == store_id)
+        
+        inv = inv_query.first()
         batches = []
         stock_level = 0
         if inv:
@@ -65,6 +71,7 @@ def search_products(query: Optional[str] = None, db: Session = Depends(get_db)):
             "category": p.category,
             "is_prescription_required": p.is_prescription_required,
             "stock_level": stock_level,
+            "reorder_level": inv.reorder_level if inv else 10,
             "batches": batches
         }
         result.append(p_dict)
@@ -72,12 +79,16 @@ def search_products(query: Optional[str] = None, db: Session = Depends(get_db)):
     return result
 
 @router.get("/{product_id}", response_model=ProductSchema)
-def get_product(product_id: int, db: Session = Depends(get_db)):
+def get_product(product_id: int, store_id: Optional[int] = None, db: Session = Depends(get_db)):
     p = db.query(Product).filter(Product.id == product_id).first()
     if not p:
         raise HTTPException(status_code=404, detail="Product not found")
     
-    inv = db.query(Inventory).filter(Inventory.product_id == p.id).first()
+    inv_query = db.query(Inventory).filter(Inventory.product_id == p.id)
+    if store_id:
+        inv_query = inv_query.filter(Inventory.store_id == store_id)
+        
+    inv = inv_query.first()
     batches = []
     stock_level = 0
     if inv:
@@ -91,6 +102,7 @@ def get_product(product_id: int, db: Session = Depends(get_db)):
         "category": p.category,
         "is_prescription_required": p.is_prescription_required,
         "stock_level": stock_level,
+        "reorder_level": inv.reorder_level if inv else 10,
         "batches": batches
     }
 

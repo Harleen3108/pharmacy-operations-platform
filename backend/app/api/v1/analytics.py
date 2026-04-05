@@ -52,6 +52,59 @@ def get_stock_health(db: Session = Depends(get_db)):
         "out_of_stock": 0 # Simplified for now
     }
 
+@router.get("/district-summary")
+def get_district_summary(days: int = 1, db: Session = Depends(get_db)):
+    now = datetime.now()
+    current_start = now - timedelta(days=days)
+    previous_start = now - timedelta(days=days * 2)
+    
+    # Current Period Stats
+    current_sales = db.query(func.sum(Sale.total_amount)).filter(Sale.created_at >= current_start).scalar() or 0
+    current_count = db.query(func.count(Sale.id)).filter(Sale.created_at >= current_start).scalar() or 0
+    
+    # Previous Period Stats (for trends)
+    prev_sales = db.query(func.sum(Sale.total_amount)).filter(
+        Sale.created_at >= previous_start, 
+        Sale.created_at < current_start
+    ).scalar() or 0
+    prev_count = db.query(func.count(Sale.id)).filter(
+        Sale.created_at >= previous_start, 
+        Sale.created_at < current_start
+    ).scalar() or 0
+    
+    # Trend Calculation
+    sales_change = ((float(current_sales) - float(prev_sales)) / float(prev_sales) * 100) if prev_sales > 0 else 0
+    count_change = ((current_count - prev_count) / prev_count * 100) if prev_count > 0 else 0
+    
+    # Store-wise Performance
+    performance = db.query(
+        Store.name.label('name'),
+        func.sum(Sale.total_amount).label('sales'),
+        func.count(Sale.id).label('transactions')
+    ).join(Sale, Sale.store_id == Store.id)\
+     .filter(Sale.created_at >= current_start)\
+     .group_by(Store.id).all()
+    
+    store_performance = [
+        {
+            "name": p.name, 
+            "sales": float(p.sales), 
+            "transactions": p.transactions,
+            "margin": 28 + (hash(p.name) % 10) # Mocking margin variations for demo
+        }
+        for p in performance
+    ]
+    
+    return {
+        "total_sales": float(current_sales),
+        "sales_change": round(sales_change, 1),
+        "total_dispensing": current_count,
+        "dispensing_change": round(count_change, 1),
+        "avg_margin": 31.4, # Mocked
+        "margin_change": -1.2, # Mocked
+        "store_performance": store_performance
+    }
+
 @router.get("/top-performing-stores")
 def get_top_performing_stores(db: Session = Depends(get_db)):
     performance = db.query(
@@ -62,6 +115,6 @@ def get_top_performing_stores(db: Session = Depends(get_db)):
      .order_by(func.sum(Sale.total_amount).desc()).limit(5).all()
     
     return [
-        {"store": p.store, "sales": float(p.sales), "profit": float(p.sales) * 0.25} # Assuming 25% margin
+        {"store": p.store, "sales": float(p.sales), "profit": float(p.sales) * 0.25}
         for p in performance
     ]

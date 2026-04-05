@@ -63,8 +63,14 @@ class Sale(Base):
     store_id = Column(Integer, ForeignKey("stores.id"))
     associate_id = Column(Integer, ForeignKey("users.id"))
     total_amount = Column(Numeric(12, 2), nullable=False)
+    customer_name = Column(String(100), nullable=True) # captured during billing
+    customer_mobile = Column(String(20), nullable=True)
+    payment_method = Column(String(20), default="cash") # cash, card, online
     status = Column(String(20), default="completed")
     created_at = Column(DateTime, server_default=func.now())
+
+    store = relationship("Store")
+    associate = relationship("User")
 
 class SaleItem(Base):
     __tablename__ = "sale_items"
@@ -83,3 +89,22 @@ class PurchaseOrder(Base):
     status = Column(String(50), default="pending")
     source = Column(String(50), default="AI_FORECAST")
     created_at = Column(DateTime, server_default=func.now())
+
+class Prescription(Base):
+    __tablename__ = "prescriptions"
+    id = Column(Integer, primary_key=True, index=True)
+    patient_name = Column(String(100), nullable=False)
+    rx_number = Column(String(50), unique=True, index=True, nullable=False)
+    medicines = Column(JSON, nullable=False) # List of {name, dosage}
+    type = Column(String(20), default="standard") # standard, restricted, controlled
+    status = Column(String(20), default="pending") # pending, validated, rejected
+    compliance_flags = Column(JSON, default=lambda: {
+        "practitioner_verified": True,
+        "interaction_check": True,
+        "allergy_match": True,
+        "substance_registry": True
+    })
+    store_id = Column(Integer, ForeignKey("stores.id"))
+    pharmacist_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    validated_at = Column(DateTime, nullable=True)

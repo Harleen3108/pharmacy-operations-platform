@@ -1,17 +1,17 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { inventoryService, salesService, analyticsService, aiService } from '../api/services';
+import { inventoryService, salesService, analyticsService, aiService, storesService, prescriptionService } from '../api/services';
 
-export const useInventory = (query?: string) => {
+export const useInventory = (query?: string, storeId?: number) => {
   return useQuery({
-    queryKey: ['inventory', query],
-    queryFn: () => inventoryService.search(query),
+    queryKey: ['inventory', query, storeId],
+    queryFn: () => inventoryService.search(query, storeId),
   });
 };
 
-export const useProduct = (id: number) => {
+export const useProduct = (id: number, storeId?: number) => {
   return useQuery({
-    queryKey: ['product', id],
-    queryFn: () => inventoryService.getById(id),
+    queryKey: ['product', id, storeId],
+    queryFn: () => inventoryService.getById(id), // Note: Backend update for getById with storeId could be added later if needed
     enabled: !!id,
   });
 };
@@ -24,19 +24,25 @@ export const useSales = (storeId: number) => {
     queryFn: () => salesService.getDailySummary(storeId),
   });
 
+  const history = useQuery({
+    queryKey: ['sales-history'],
+    queryFn: () => salesService.getAll(),
+  });
+
   const checkout = useMutation({
     mutationFn: (saleData: any) => salesService.create(saleData),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['inventory'] });
       queryClient.invalidateQueries({ queryKey: ['sales-summary'] });
+      queryClient.invalidateQueries({ queryKey: ['sales-history'] });
       queryClient.invalidateQueries({ queryKey: ['sales-trends'] });
     },
   });
 
-  return { summary, checkout };
+  return { summary, history, checkout };
 };
 
-export const useAnalytics = () => {
+export const useAnalytics = (days: number = 1) => {
   const trends = useQuery({
     queryKey: ['sales-trends'],
     queryFn: () => analyticsService.getSalesTrends(),
@@ -47,7 +53,12 @@ export const useAnalytics = () => {
     queryFn: () => analyticsService.getStockHealth(),
   });
 
-  return { trends, health };
+  const districtSummary = useQuery({
+    queryKey: ['district-summary', days],
+    queryFn: () => analyticsService.getDistrictSummary(days),
+  });
+
+  return { trends, health, districtSummary };
 };
 
 export const useInventoryMutation = () => {
@@ -90,4 +101,49 @@ export const useAI = () => {
   });
 
   return { query, applyReorder };
+};
+
+export const useStores = () => {
+  const queryClient = useQueryClient();
+
+  const stats = useQuery({
+    queryKey: ['stores-stats'],
+    queryFn: () => storesService.getStats(),
+  });
+
+  const createStore = useMutation({
+    mutationFn: (storeData: any) => storesService.create(storeData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['stores-stats'] });
+    },
+  });
+
+  return { stats, createStore };
+};
+
+export const usePrescriptions = (status: string = "pending") => {
+  const queryClient = useQueryClient();
+
+  const list = useQuery({
+    queryKey: ['prescriptions', status],
+    queryFn: () => prescriptionService.getList(status),
+  });
+
+  const validate = useMutation({
+    mutationFn: ({ id, pharmacistId }: { id: number, pharmacistId: number }) => 
+      prescriptionService.validate(id, pharmacistId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
+      queryClient.invalidateQueries({ queryKey: ['inventory'] });
+    },
+  });
+
+  const reject = useMutation({
+    mutationFn: (id: number) => prescriptionService.reject(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prescriptions'] });
+    },
+  });
+
+  return { list, validate, reject };
 };

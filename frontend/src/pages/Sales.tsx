@@ -29,7 +29,7 @@ export const Sales = () => {
 
   // Derived totals
   const subtotal = items.reduce((acc, i) => acc + (i.price * i.quantity), 0);
-  const vat = subtotal * 0.05;
+  const vat = subtotal * 0.18; // Standardized 18% GST
   const total = subtotal + vat;
 
   const handleCheckout = () => {
@@ -37,7 +37,7 @@ export const Sales = () => {
       store_id: 1,
       associate_id: 1, // Default for demo
       items: items.map(i => ({
-        batch_id: i.id, // Using batch ID as item.id
+        batch_id: i.batch_id,
         quantity: i.quantity,
         unit_price: i.price
       })),
@@ -62,11 +62,12 @@ export const Sales = () => {
       }
       addItem({
         id: batch.id,
+        batch_id: batch.id,
         name: product.name,
         price: batch.selling_price,
         quantity: 1,
-        requiresPrescription: product.is_prescription_required,
-        batch: batch.batch_number
+        batch_number: batch.batch_number,
+        requiresPrescription: product.is_prescription_required
       });
       setSearchQuery('');
       setIsSearching(false);
@@ -170,7 +171,7 @@ export const Sales = () => {
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{product.generic_name} • {product.batches?.[0]?.batch_number || 'No Batch'}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm font-black text-emerald-600">${product.batches?.[0]?.selling_price?.toFixed(2) || '0.00'}</p>
+                                    <p className="text-sm font-black text-emerald-600">₹{product.batches?.[0]?.selling_price?.toFixed(2) || '0.00'}</p>
                                     <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{product.stock_level} Unit(s)</p>
                                 </div>
                             </button>
@@ -241,7 +242,7 @@ export const Sales = () => {
                             <AlertTriangle className="w-3 h-3 text-rose-500" />
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Batch: {item.batch}</p>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Batch: {item.batch_number}</p>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="flex items-center gap-3 bg-white p-1 rounded-lg border border-slate-100 shadow-sm">
@@ -260,7 +261,7 @@ export const Sales = () => {
                         </button>
                       </div>
                       <div className="text-right w-24">
-                        <p className="text-sm font-black text-[#111827]">${(item.price * item.quantity).toFixed(2)}</p>
+                        <p className="text-sm font-black text-[#111827]">₹{(item.price * item.quantity).toFixed(2)}</p>
                       </div>
                       <button 
                         className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
@@ -279,11 +280,11 @@ export const Sales = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center text-xs font-bold">
                     <span className="text-slate-400 uppercase tracking-widest">Subtotal</span>
-                    <span className="text-[#111827]">${subtotal.toFixed(2)}</span>
+                    <span className="text-[#111827]">₹{subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center pt-2 border-t border-slate-200">
                     <span className="text-sm font-black text-[#111827] uppercase tracking-widest">Grand Total</span>
-                    <span className="text-2xl font-black text-[#111827]">${total.toFixed(2)}</span>
+                    <span className="text-2xl font-black text-[#111827]">₹{total.toFixed(2)}</span>
                   </div>
                 </div>
                 <div className="flex flex-col gap-3">

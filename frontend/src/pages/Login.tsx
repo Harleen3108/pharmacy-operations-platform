@@ -39,7 +39,23 @@ export const Login = () => {
       localStorage.setItem('user_role', response.role);
       localStorage.setItem('store_id', response.store_id);
       
-      navigate('/');
+      // Redirect based on role immediately
+      switch (response.role) {
+        case 'District Admin':
+          navigate('/admin');
+          break;
+        case 'Store Supervisor':
+          navigate('/supervisor');
+          break;
+        case 'Pharmacist':
+          navigate('/pharmacist');
+          break;
+        case 'Associate':
+          navigate('/billing');
+          break;
+        default:
+          navigate('/');
+      }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Authentication failed. Please verify your credentials.');
     } finally {

@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import auth, inventory, sales, analytics, ai
+from app.api.v1 import auth, inventory, sales, analytics, ai, users, roles, stores, prescriptions
 from app.core.config import settings
 
 app = FastAPI(
@@ -24,6 +24,10 @@ app.include_router(inventory.router, prefix="/api/v1/inventory", tags=["Inventor
 app.include_router(sales.router, prefix="/api/v1/sales", tags=["Sales & Billing"])
 app.include_router(analytics.router, prefix="/api/v1/analytics", tags=["BI Dashboards"])
 app.include_router(ai.router, prefix="/api/v1/ai", tags=["AI Features"])
+app.include_router(users.router, prefix="/api/v1/users", tags=["Staff Management"])
+app.include_router(roles.router, prefix="/api/v1/roles", tags=["Roles & Permissions"])
+app.include_router(stores.router, prefix="/api/v1/stores", tags=["Store Locations"])
+app.include_router(prescriptions.router, prefix="/api/v1/prescriptions", tags=["Clinical Services"])
 
 @app.get("/")
 def read_root():
