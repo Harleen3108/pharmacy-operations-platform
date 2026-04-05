@@ -1,0 +1,24 @@
+# Python dependencies
+backend/venv/
+backend/.venv/
+.venv/
+__pycache__/
+*.pyc
+
+# Node dependencies
+frontend/node_modules/
+node_modules/
+frontend/dist/
+
+# Environment files
+.env
+backend/.env
+frontend/.env.local
+
+# Databases
+backend/pharmacy.db
+backend/test.db
+
+# OS files
+.DS_Store
+Thumbs.db
