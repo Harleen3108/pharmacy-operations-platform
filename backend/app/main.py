@@ -18,16 +18,18 @@ Base.metadata.create_all(bind=engine)
 
 def init_db():
     from app.db.session import SessionLocal
-    from app.models.models import Role, Store, User
+    from app.models.models import Role, Store, User, Product, Inventory, Batch, Sale, SaleItem
     from app.core.security import get_password_hash
+    from datetime import datetime, timedelta
+    import random
     
     db = SessionLocal()
     try:
         # 1. Seed Roles
         if not db.query(Role).first():
             roles = [
-                Role(id=1, name="Admin", description="System Administrator"),
-                Role(id=2, name="Supervisor", description="Store Supervisor"),
+                Role(id=1, name="District Admin", description="System Administrator"),
+                Role(id=2, name="Store Supervisor", description="Store Supervisor"),
                 Role(id=3, name="Pharmacist", description="Licensed Pharmacist"),
                 Role(id=4, name="Associate", description="Sales Associate")
             ]
@@ -42,19 +44,91 @@ def init_db():
             db.flush()
             print("Seeded default store.")
 
-        # 3. Seed Admin User
-        if not db.query(User).filter(User.username == "admin").first():
-            admin = User(
-                username="admin", 
-                email="admin@pharmacy.com",
-                password_hash=get_password_hash("admin123"), # Default password
-                role_id=1,
-                store_id=1,
-                full_name="System Administrator"
-            )
-            db.add(admin)
-            db.commit()
-            print("Seeded admin user.")
+        # 3. Seed Users
+        users_to_seed = [
+            {"username": "admin", "pwd": "admin123", "role": 1, "name": "System Admin"},
+            {"username": "supervisor01", "pwd": "supervisor123", "role": 2, "name": "Store Supervisor"},
+            {"username": "pharmacist01", "pwd": "pharmacist123", "role": 3, "name": "Pharmacist"},
+            {"username": "associate01", "pwd": "associate123", "role": 4, "name": "Store Associate"}
+        ]
+        for u in users_to_seed:
+            if not db.query(User).filter(User.username == u["username"]).first():
+                user = User(
+                    username=u["username"], 
+                    email=f"{u['username']}@pharmacy.com",
+                    password_hash=get_password_hash(u["pwd"]),
+                    role_id=u["role"],
+                    store_id=1,
+                    full_name=u["name"]
+                )
+                db.add(user)
+                print(f"Seeded user: {u['username']}")
+
+        # 4. Seed Products & Inventory
+        if not db.query(Product).first():
+            products = [
+                {"name": "Amoxicillin 500mg", "cat": "Antibiotics", "price": 12.50, "cost": 8.00},
+                {"name": "Paracetamol 500mg", "cat": "Analgesics", "price": 5.00, "cost": 2.00},
+                {"name": "Metformin 500mg", "cat": "Antidiabetic", "price": 15.00, "cost": 10.00},
+                {"name": "Atorvastatin 20mg", "cat": "Cardiovascular", "price": 22.00, "cost": 15.00},
+                {"name": "Lanzoprazole 30mg", "cat": "Gastrointestinal", "price": 18.00, "cost": 11.00},
+                {"name": "Amlodipine 5mg", "cat": "Cardiovascular", "price": 10.50, "cost": 7.00},
+                {"name": "Azithromycin 500mg", "cat": "Antibiotics", "price": 25.00, "cost": 18.00},
+                {"name": "Cetirizine 10mg", "cat": "Antihistamine", "price": 8.00, "cost": 4.00},
+                {"name": "Losartan 50mg", "cat": "Cardiovascular", "price": 20.00, "cost": 14.00},
+                {"name": "Ibuprofen 400mg", "cat": "Analgesics", "price": 7.50, "cost": 3.50}
+            ]
+            
+            for p_data in products:
+                prod = Product(name=p_data["name"], category=p_data["cat"], is_prescription_required=True)
+                db.add(prod)
+                db.flush()
+                
+                inv = Inventory(store_id=1, product_id=prod.id, reorder_level=10)
+                db.add(inv)
+                db.flush()
+                
+                # Add two batches per product (one near expiry)
+                batch1 = Batch(
+                    inventory_id=inv.id, batch_number=f"B-{prod.id}-01", 
+                    expiry_date=(datetime.now() + timedelta(days=random.randint(400, 700))).date(),
+                    cost_price=p_data["cost"], selling_price=p_data["price"],
+                    initial_quantity=100, current_quantity=85
+                )
+                batch2 = Batch(
+                    inventory_id=inv.id, batch_number=f"B-{prod.id}-XPR", 
+                    expiry_date=(datetime.now() + timedelta(days=random.randint(15, 25))).date(),
+                    cost_price=p_data["cost"], selling_price=p_data["price"],
+                    initial_quantity=50, current_quantity=12
+                )
+                db.add_all([batch1, batch2])
+            print("Seeded products & inventory.")
+
+        # 5. Seed 7-Day Sales History
+        if not db.query(Sale).first():
+            all_batches = db.query(Batch).all()
+            assoc = db.query(User).filter(User.username == "associate01").first()
+            
+            for i in range(7):
+                sale_date = datetime.now() - timedelta(days=i)
+                for _ in range(random.randint(3, 8)):
+                    sale = Sale(store_id=1, associate_id=assoc.id, total_amount=0, created_at=sale_date)
+                    db.add(sale)
+                    db.flush()
+                    
+                    total = 0
+                    for _ in range(random.randint(1, 4)):
+                        b = random.choice(all_batches)
+                        qty = random.randint(1, 3)
+                        item_total = qty * float(b.selling_price)
+                        item = SaleItem(sale_id=sale.id, batch_id=b.id, quantity=qty, unit_price=b.selling_price, subtotal=item_total)
+                        db.add(item)
+                        total += item_total
+                    
+                    sale.total_amount = total
+            print("Seeded 7-day sales history.")
+
+        db.commit()
     except Exception as e:
         print(f"Error seeding database: {e}")
         db.rollback()

@@ -26,7 +26,7 @@ const RoleRedirect = () => {
     case 'Associate':
       return <Navigate to="/billing" replace />;
     default:
-      return <Dashboard />;
+      return <Layout><Dashboard /></Layout>;
   }
 };
 
