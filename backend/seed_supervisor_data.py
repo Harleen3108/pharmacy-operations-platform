@@ -1,96 +1,103 @@
 from app.db.session import SessionLocal
-from app.models.models import StockTransfer, Sale, SaleItem, Inventory, Batch, User, Product
+from app.models.models import User, Store, Sale, SaleItem, Inventory, Batch, Role
 from datetime import datetime, timedelta
 import random
 
 def seed():
     db = SessionLocal()
     try:
-        store_id = 1
-        # Staff members of Store 1
-        staff_ids = [3, 4] # pharmacist01, associate01
+        # 1. Ensure Store 14 exists
+        store_14 = db.query(Store).filter(Store.id == 14).first()
+        if not store_14:
+            print("Store 14 not found. Creating...")
+            store_14 = Store(id=14, name="Westwood Health Hub", location="Westwood Village", contact_number="555-0900")
+            db.add(store_14)
+            db.flush()
+
+        # 2. Ensure Role 4 exists
+        role_assoc = db.query(Role).filter(Role.id == 4).first()
+        if not role_assoc:
+            role_assoc = Role(id=4, name="Associate", description="Sales staff")
+            db.add(role_assoc)
+            db.flush()
+
+        # 3. Create Associates for Store 14
+        associates = [
+            {"username": "jake_s14", "full_name": "Jake Peralta"},
+            {"username": "amy_s14", "full_name": "Amy Santiago"}
+        ]
         
-        # 1. Clear existing transfers and sales for Store 1 (optional, for clean demo)
-        print("Cleaning up existing Store 1 dummy data...")
-        # Delete SaleItems first to avoid FK constraint error
-        sale_ids = [s.id for s in db.query(Sale).filter(Sale.store_id == store_id).all()]
-        if sale_ids:
-            db.query(SaleItem).filter(SaleItem.sale_id.in_(sale_ids)).delete(synchronize_session=False)
-            db.query(Sale).filter(Sale.id.in_(sale_ids)).delete(synchronize_session=False)
-        
-        db.query(StockTransfer).filter((StockTransfer.from_store_id == store_id) | (StockTransfer.to_store_id == store_id)).delete(synchronize_session=False)
-        
-        # 2. Add some replenishment transfers
-        print("Seeding diverse Transfers...")
-        inventory_items = db.query(Inventory).filter(Inventory.store_id == store_id).limit(10).all()
-        if not inventory_items:
-            print("No inventory for Store 1. Please run main seeder first.")
+        created_associates = []
+        for a in associates:
+            user = db.query(User).filter(User.username == a["username"]).first()
+            if not user:
+                user = User(
+                    username=a["username"],
+                    full_name=a["full_name"],
+                    email=f"{a['username']}@pharmacy.com",
+                    password_hash="fake_hash", # Not for login
+                    role_id=4,
+                    store_id=14
+                )
+                db.add(user)
+                db.flush()
+                print(f"Created associate: {a['full_name']}")
+            created_associates.append(user)
+
+        # 4. Get Inventory for Store 14
+        inventories = db.query(Inventory).filter(Inventory.store_id == 14).all()
+        if not inventories:
+            print("No inventory in Store 14. Cannot seed sales.")
             return
 
-        for i, item in enumerate(inventory_items[:5]):
-            status = ["pending", "received", "approved", "shipped"][i % 4]
-            t = StockTransfer(
-                from_store_id=random.choice([2, 3]), 
-                to_store_id=store_id,
-                product_id=item.product_id,
-                quantity=random.randint(20, 100),
-                status=status
-            )
-            db.add(t)
-
-        # 3. Add 15-20 Sales for Store 1, distributed across staff
-        print("Seeding Sales distributed by Staff...")
-        customers = ["Arun Kumar", "Priya Singh", "Sameer Khan", "Rahul Gupta", "Anita Roy", "Vikram Shah", "Kiran Devi"]
-        
-        for i in range(20):
-            # Distribution over the last 7 days
-            sale_time = datetime.now() - timedelta(days=random.randint(0, 6), hours=random.randint(1, 15))
-            staff_id = random.choice(staff_ids)
-            
-            new_sale = Sale(
-                store_id=store_id,
-                associate_id=staff_id,
-                total_amount=random.uniform(150, 2500),
-                customer_name=random.choice(customers),
-                customer_mobile=f"98765{random.randint(11111, 99999)}",
-                payment_method=random.choice(["cash", "card", "upi"]),
-                status="completed",
-                created_at=sale_time
-            )
-            db.add(new_sale)
-            db.flush()
-            
-            # Add sale items
-            batches = db.query(Batch).join(Inventory).filter(Inventory.store_id == store_id).limit(3).all()
-            for b in random.sample(batches, k=random.randint(1, 2)):
-                qty = random.randint(1, 10)
-                item = SaleItem(
-                    sale_id=new_sale.id,
-                    batch_id=b.id,
-                    quantity=qty,
-                    unit_price=b.selling_price,
-                    subtotal=b.selling_price * qty
+        # 5. Seed Sales for last 7 days
+        current_time = datetime.now()
+        for i in range(7):
+            date_to_seed = current_time - timedelta(days=i)
+            # 3-5 sales per day
+            num_sales = random.randint(3, 5)
+            for _ in range(num_sales):
+                assoc = random.choice(created_associates)
+                
+                # Create Sale
+                sale = Sale(
+                    store_id=14,
+                    associate_id=assoc.id,
+                    total_amount=0, # Will update
+                    status="completed",
+                    created_at=date_to_seed
                 )
-                db.add(item)
+                db.add(sale)
+                db.flush()
 
-        # 4. Trigger "Low Stock" and "Expiring" alerts for Analytics
-        print("Mocking Stock Health issues...")
-        # Make some batches low stock
-        reorder_items = db.query(Batch).join(Inventory).filter(Inventory.store_id == store_id).limit(3).all()
-        for b in reorder_items:
-            b.current_quantity = random.randint(1, 5) # below reorder_level
-            
-        # Make a batch expiring soon
-        expiring_batch = db.query(Batch).join(Inventory).filter(Inventory.store_id == store_id).offset(3).first()
-        if expiring_batch:
-            expiring_batch.expiry_date = (datetime.now() + timedelta(days=15)).date()
+                # Add SaleItems
+                total = 0
+                num_items = random.randint(1, 3)
+                selected_invs = random.sample(inventories, min(len(inventories), num_items))
+                for inv in selected_invs:
+                    batch = db.query(Batch).filter(Batch.inventory_id == inv.id).first()
+                    if batch:
+                        qty = random.randint(1, 3)
+                        item_total = qty * batch.selling_price
+                        sale_item = SaleItem(
+                            sale_id=sale.id,
+                            batch_id=batch.id,
+                            quantity=qty,
+                            unit_price=batch.selling_price,
+                            subtotal=item_total
+                        )
+                        db.add(sale_item)
+                        total += item_total
+                
+                sale.total_amount = total
+                db.flush()
 
         db.commit()
-        print("Successfully seeded all Supervisor operational data!")
-        
+        print("Successfully seeded Store 14 with 7-day sales and performance data.")
+
     except Exception as e:
-        print(f"Error seeding: {e}")
         db.rollback()
+        print(f"Error seeding data: {e}")
     finally:
         db.close()
 

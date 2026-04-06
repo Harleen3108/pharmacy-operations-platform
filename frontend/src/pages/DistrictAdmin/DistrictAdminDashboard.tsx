@@ -95,7 +95,7 @@ export const DistrictAdminDashboard = () => {
       </div>
 
       {/* High Level Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <PerformanceCard 
           title="Total District Sales" 
           value={`₹${data.total_sales.toLocaleString()}`} 
@@ -130,7 +130,7 @@ export const DistrictAdminDashboard = () => {
         />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
         {/* Sales Distribution Chart */}
         <div className="xl:col-span-2 bg-white p-8 rounded-2xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-center mb-10">
@@ -195,8 +195,8 @@ export const DistrictAdminDashboard = () => {
       </div>
 
       {/* Store Detailed List */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-slate-50 flex justify-between items-center">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm min-w-0">
+        <div className="p-6 md:p-8 border-b border-slate-50 flex justify-between items-center overflow-x-auto whitespace-nowrap scrollbar-hide">
           <h3 className="font-black text-[#111827]">Branch Performance Audit</h3>
           <button className="text-xs font-bold text-emerald-600 hover:underline">Download CSV</button>
         </div>

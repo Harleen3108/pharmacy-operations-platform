@@ -58,7 +58,7 @@ export const StoreManagement = () => {
   return (
     <div className="max-w-[1600px] mx-auto space-y-8 pb-12 font-outfit">
       {/* Header Section */}
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
           <div className="flex items-center gap-2 mb-2">
             <Building2 className="w-5 h-5 text-emerald-600" />
@@ -99,7 +99,7 @@ export const StoreManagement = () => {
       </div>
 
       {/* Quick Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm">
           <div className="flex justify-between items-start mb-4">
             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl">
@@ -148,7 +148,7 @@ export const StoreManagement = () => {
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
         
         {/* Store Performance Comparison Chart */}
-        <div className="xl:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm p-8 flex flex-col h-[500px]">
+        <div className="xl:col-span-2 bg-white rounded-3xl border border-slate-100 shadow-sm p-6 md:p-8 flex flex-col h-[350px] md:h-[500px]">
           <div className="flex justify-between items-center mb-8">
             <div>
               <h2 className="text-xl font-black text-[#111827]">Performance Comparison</h2>
@@ -224,7 +224,7 @@ export const StoreManagement = () => {
       </div>
            {/* Search & Grid Area */}
       <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-slate-50 flex flex-wrap items-center justify-between gap-6 bg-slate-50/30">
+        <div className="p-6 md:p-8 border-b border-slate-50 flex flex-col md:flex-row items-center justify-between gap-6 bg-slate-50/30">
           <div className="flex flex-wrap items-center gap-4 flex-1">
             {/* Search Input */}
             <div className="relative w-full max-w-md">

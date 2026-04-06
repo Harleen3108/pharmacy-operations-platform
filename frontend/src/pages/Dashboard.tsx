@@ -81,7 +81,7 @@ export const Dashboard = () => {
         {/* Main Content Area */}
         <div className="xl:col-span-3 space-y-8">
           {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <StatCard 
               icon={DollarSign} 
               label="Daily Sales" 
@@ -114,7 +114,7 @@ export const Dashboard = () => {
             />
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
             {/* Revenue Performance Chart */}
             <div className="bg-white p-6 rounded-xl border border-slate-100 shadow-sm">
               <div className="flex justify-between items-center mb-8">
@@ -194,7 +194,7 @@ export const Dashboard = () => {
           </div>
 
           {/* Inventory Snapshot (Dynamic Top Products soon) */}
-          <div className="bg-white p-8 rounded-xl border border-slate-100 shadow-sm">
+          <div className="bg-white p-6 md:p-8 rounded-xl border border-slate-100 shadow-sm">
             <h3 className="font-black text-[#111827] mb-8">System Health Snapshot</h3>
             <div className="space-y-6">
               {[

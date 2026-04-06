@@ -86,7 +86,7 @@ const PersonnelDrawer = ({ isOpen, onClose, roles, stores, formData, setFormData
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed right-0 top-0 h-full w-full max-w-[420px] bg-white shadow-2xl z-[70] overflow-y-auto p-10 font-outfit"
+            className="fixed right-0 top-0 h-full w-full md:max-w-[420px] bg-white shadow-2xl z-[70] overflow-y-auto p-6 md:p-10 font-outfit"
           >
             <div className="flex justify-between items-center mb-10 pb-6 border-b border-slate-50">
                 <h3 className="text-2xl font-black text-[#111827] flex items-center gap-3">

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from app.db.session import get_db
-from app.models.models import StockTransfer, Store, Product
+from app.models.models import StockTransfer, Store, Product, Inventory, Batch
 from pydantic import BaseModel
 from datetime import datetime
 
@@ -60,11 +60,16 @@ def create_transfer(transfer_data: TransferCreate, db: Session = Depends(get_db)
     db.commit()
     db.refresh(new_transfer)
     
+    # Eagerly fetch for response
+    product = db.query(Product).filter(Product.id == new_transfer.product_id).first()
+    from_store = db.query(Store).filter(Store.id == new_transfer.from_store_id).first()
+    to_store = db.query(Store).filter(Store.id == new_transfer.to_store_id).first()
+    
     return {
         "id": new_transfer.id,
-        "product_name": new_transfer.product.name,
-        "from_store_name": new_transfer.from_store.name,
-        "to_store_name": new_transfer.to_store.name,
+        "product_name": product.name if product else "Unknown",
+        "from_store_name": from_store.name if from_store else "Unknown",
+        "to_store_name": to_store.name if to_store else "Unknown",
         "quantity": new_transfer.quantity,
         "status": new_transfer.status,
         "created_at": new_transfer.created_at
@@ -76,6 +81,72 @@ def update_transfer_status(transfer_id: int, status: str, db: Session = Depends(
     if not transfer:
         raise HTTPException(status_code=404, detail="Transfer not found")
     
+    # Inventory Adjustment Logic
+    if status == "approved" and transfer.status == "pending":
+        # Subtract from SENDER
+        inventory = db.query(Inventory).filter(
+            Inventory.product_id == transfer.product_id,
+            Inventory.store_id == transfer.from_store_id
+        ).first()
+        
+        if not inventory:
+            raise HTTPException(status_code=400, detail="Sender has no inventory for this product")
+            
+        batches = db.query(Batch).filter(
+            Batch.inventory_id == inventory.id,
+            Batch.current_quantity > 0
+        ).order_by(Batch.expiry_date.asc()).all()
+        
+        total_available = sum(b.current_quantity for b in batches)
+        if total_available < transfer.quantity:
+            raise HTTPException(status_code=400, detail="Insufficient stock in sender store")
+            
+        remaining_to_deduct = transfer.quantity
+        for b in batches:
+            if remaining_to_deduct <= 0:
+                break
+            deduct = min(b.current_quantity, remaining_to_deduct)
+            b.current_quantity -= deduct
+            remaining_to_deduct -= deduct
+            
+    elif status == "received" and transfer.status == "approved":
+        # Add to RECEIVER
+        inventory = db.query(Inventory).filter(
+            Inventory.product_id == transfer.product_id,
+            Inventory.store_id == transfer.to_store_id
+        ).first()
+        
+        if not inventory:
+            # Create inventory record if it doesn't exist
+            inventory = Inventory(
+                product_id=transfer.product_id,
+                store_id=transfer.to_store_id,
+                reorder_level=10
+            )
+            db.add(inventory)
+            db.flush()
+            
+        # For simplicity, we create a new "Transferred" batch or add to an existing placeholder
+        # In a real system, we'd transfer the specific batch ID
+        existing_batch = db.query(Batch).filter(
+            Batch.inventory_id == inventory.id,
+            Batch.batch_number == "TRANSFERRED"
+        ).first()
+        
+        if existing_batch:
+            existing_batch.current_quantity += transfer.quantity
+        else:
+            new_batch = Batch(
+                inventory_id=inventory.id,
+                batch_number="TRANSFERRED",
+                expiry_date=datetime.now().date(), # Placeholder - ideally from source batch
+                cost_price=0.0,
+                selling_price=0.0,
+                initial_quantity=transfer.quantity,
+                current_quantity=transfer.quantity
+            )
+            db.add(new_batch)
+            
     transfer.status = status
     db.commit()
-    return {"message": f"Transfer status updated to {status}"}
+    return {"message": f"Transfer status updated to {status}", "id": transfer.id}

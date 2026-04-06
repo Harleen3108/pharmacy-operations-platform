@@ -19,7 +19,7 @@ import {
 import { NavLink } from 'react-router-dom';
 import { cn } from '../lib/utils';
 import { useAuth } from '../hooks/useAuth';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -121,23 +121,32 @@ export const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
   const filteredItems = navItems.filter(item => item.roles.includes(role));
 
   return (
-    <motion.aside 
-      initial={false}
-      animate={{ width: isCollapsed ? 80 : 256 }}
-      transition={{ type: 'spring', damping: 20, stiffness: 100 }}
-      className="bg-white text-slate-600 flex flex-col h-screen sticky top-0 border-r border-slate-100 shrink-0 relative"
-    >
-      {/* Toggle Slider Button */}
-      <button 
-        onClick={onToggle}
-        className="absolute -right-3.5 top-10 w-7 h-7 bg-white border border-slate-100 rounded-full flex items-center justify-center text-slate-400 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm z-20"
+    <AnimatePresence>
+      <motion.aside 
+        initial={false}
+        animate={{ 
+          width: isCollapsed ? 80 : 256,
+          x: 0 
+        }}
+        transition={{ type: 'spring', damping: 25, stiffness: 120 }}
+        className={cn(
+          "bg-white text-slate-600 flex flex-col h-screen sticky top-0 border-r border-slate-100 shrink-0 relative z-30 transition-shadow",
+          !isCollapsed && "shadow-2xl md:shadow-none"
+        )}
       >
-        {isCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-      </button>
+        {/* Toggle Slider Button - Optimized for Visibility */}
+        <button 
+          onClick={onToggle}
+          className="absolute -right-4 top-10 w-8 h-8 bg-white border border-slate-200 rounded-full flex items-center justify-center text-[#111827] hover:text-emerald-600 hover:border-emerald-500 transition-all shadow-lg z-[100] group active:scale-95"
+        >
+          <div className="w-5 h-5 bg-slate-50 border border-slate-100 rounded-full flex items-center justify-center group-hover:bg-emerald-50 transition-colors">
+            {isCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
+          </div>
+        </button>
 
       <div className={cn("p-6 flex items-center gap-4 border-b border-slate-50", isCollapsed && "justify-center")}>
-        <div className="w-10 h-10 bg-[#065F46] rounded-lg flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden">
-          <ShieldPlus className="w-6 h-6" />
+        <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm shrink-0 overflow-hidden border border-slate-50">
+          <img src="/favicon.png" alt="Logo" className="w-full h-full object-contain p-1.5" />
         </div>
         {!isCollapsed && (
           <motion.div
@@ -146,7 +155,7 @@ export const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
             className="overflow-hidden whitespace-nowrap"
           >
             <h1 className="text-[#111827] font-extrabold text-base leading-tight tracking-tight">{portalName}</h1>
-            <p className="text-[9px] text-slate-400 font-bold tracking-[0.1em] uppercase">Clinical Atelier</p>
+            <p className="text-[9px] text-slate-400 font-bold tracking-[0.1em] uppercase">Omnichannel Pharmacy</p>
           </motion.div>
         )}
       </div>
@@ -217,5 +226,6 @@ export const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
         </button>
       </div>
     </motion.aside>
+    </AnimatePresence>
   );
 };
