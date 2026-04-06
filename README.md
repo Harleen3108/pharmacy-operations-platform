@@ -1,6 +1,6 @@
-# 💊 Omnichannel Pharmacy Operations Platform
+# 💊 PharmaSync: Omnichannel Pharmacy Operations Platform
 
-**PharmaSync | All-in-One Operations & BI Hub for High-Performance Pharmacy Chains**
+**All-in-One Operations & BI Hub for High-Performance Pharmacy Chains**
 
 [![Next.js](https://img.shields.io/badge/Frontend-React%20%2B%20Vite-blue)](https://vitejs.dev/)
 [![FastAPI](https://img.shields.io/badge/Backend-FastAPI-green)](https://fastapi.tiangolo.com/)
@@ -10,15 +10,25 @@
 ---
 
 ## 🚀 The Vision
-Regional pharmacy chains often struggle with manual inventory management, disconnected sales data, and slow replenishment cycles. **PharmaSync** bridges the gap between digital efficiency and physical store operations. It's a modular, AI-powered platform designed to provide store managers, pharmacists, and supervisors with real-time insights and automated workflows.
+Regional pharmacy chains often struggle with manual inventory management, disconnected sales data, and slow replenishment cycles. **PharmaSync** bridges the gap between digital efficiency and physical store operations. It's an intelligent, scalable, and AI-driven platform designed to enable store managers, pharmacists, and supervisors to make smarter and faster decisions.
+
+---
+
+## 🧠 AI-Driven Capabilities
+- **🤖 Smart Replenishment**: Automated stock suggestions using **Google Gemini AI** to predict needs based on sales volume and local demand.
+- **📈 Demand Forecasting**: Predicts future product demand using historical sales trends.
+- **🔍 Anomaly Detection**: Identifies unusual or suspicious transactions or inventory patterns.
+- **💡 AI Insights**: Natural language queries to understand system data and performance trends.
+
+---
 
 ## ✨ Core Features
-- **🏪 Smart Store Management**: Real-time inventory tracking across multiple branches.
-- **🤖 AI-Driven Replenishment**: Automated stock suggestions using **Google Gemini AI** to predict needs based on sales volume and local demand.
+- **🏪 Multi-Store Management**: Real-time inventory tracking across multiple branches with inter-store stock transfers.
 - **📊 BI Dashboards**: Interactive visualizations for sales trends, stock health, and revenue hotspots.
 - **💊 Clinical Service Hub**: Secure digital prescription validation and pharmacist consultation tracking.
 - **📦 Omnichannel Sales**: A unified interface for billing walk-in customers and managing online stock reserves.
 - **🔐 Role-Based Access Control**: Granular permissions for Admin, Supervisor, Pharmacist, and Associate roles.
+- **⚠️ Expiry Tracking**: Automated alerts for near-expiry batches to minimize wastage.
 
 ---
 
@@ -36,7 +46,7 @@ graph TD
 ---
 
 ## 🛠️ Tech Stack
-- **Frontend**: React 18, Vite, TailwindCSS, Axios, Chart.js (Lucide icons).
+- **Frontend**: React 18, Vite, TailwindCSS, Axios, Chart.js, Lucide Icons.
 - **Backend**: Python 3.11, FastAPI, Pydantic v2, SQLAlchemy.
 - **Database**: PostgreSQL (Production) / SQLite (Development).
 - **AI Integration**: Google Generative AI (Gemini Pro).
@@ -69,8 +79,7 @@ graph TD
 
 ---
 
-## 🧪 Hackathon Demo Access
-Use the following credentials to explore the different portals of the platform:
+## 👤 User Roles & Access (Demo Credentials)
 
 | Role | Username | Password | Access Level |
 | :--- | :--- | :--- | :--- |
@@ -81,8 +90,8 @@ Use the following credentials to explore the different portals of the platform:
 
 ---
 
-## 🏆 Key Innovation Highlights (For Judges)
-- **Zero-Waste Inventory**: The Gemini AI integration suggests "Inter-Branch Transfers" instead of new purchases, reducing deadstock.
+## 🏆 Key Innovation Highlights
+- **Zero-Waste Inventory**: Gemini AI suggests "Inter-Branch Transfers" instead of new purchases, reducing deadstock.
 - **High-Density UI**: Optimized for pharmacists who need to see stock levels and shelf locations in seconds.
 - **Scalability**: Sub-second API response times and robust data modeling for thousands of SKUs.
 
