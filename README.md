@@ -83,7 +83,7 @@ graph TD
 
 | Role | Username | Password | Access Level |
 | :--- | :--- | :--- | :--- |
-| **System Admin** | `admin` | `admi123` | Full control, user management, store creation |
+| **System Admin** | `admin` | `admin123` | Full control, user management, store creation |
 | **Store Supervisor** | `supervisor01` | `supervisor123` | BI dashboards, replenish history, analytics |
 | **Pharmacist** | `pharmacist01` | `pharmacist123` | Prescription validation, clinical status |
 | **Store Associate** | `associate01` | `associate123` | Billing, walk-in sales, stock search |
