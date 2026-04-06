@@ -66,4 +66,4 @@ Database (PostgreSQL)
 - **Backend:** Node.js / Python  
 - **Database:** PostgreSQL  
 - **AI Layer:** Machine Learning / Rule-Based Logic  
-- **Deployment:** AWS / Azure  
+- **Deployment:** render, vercel
