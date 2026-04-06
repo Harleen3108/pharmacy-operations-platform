@@ -61,7 +61,7 @@ export const DistrictAdminDashboard = () => {
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-3xl font-black text-[#111827] tracking-tight mb-2">District Performance</h2>
-          <p className="text-slate-500 font-medium text-sm">Aggregated insights for all 4 clinical branches.</p>
+          <p className="text-slate-500 font-medium text-sm">Aggregated insights for all 19 network branches.</p>
         </div>
         <div className="flex bg-white p-1 rounded-xl border border-slate-200">
           <button 
@@ -154,7 +154,7 @@ export const DistrictAdminDashboard = () => {
                   cursor={{fill: '#f8fafc'}}
                   contentStyle={{borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} 
                 />
-                <Bar dataKey="sales" fill="#065F46" radius={[6, 6, 0, 0]} barSize={40} />
+                <Bar dataKey="sales" fill="#065F46" radius={[6, 6, 0, 0]} minPointSize={2} />
               </BarChart>
             </ResponsiveContainer>
           </div>

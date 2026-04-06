@@ -37,12 +37,23 @@ def init_db():
             db.flush()
             print("Seeded roles.")
 
-        # 2. Seed Default Store
+        # 2. Seed Stores (1 Main Hub + 18 Regional Branches = 19 Total)
         if not db.query(Store).first():
-            store = Store(id=1, name="Main St. Central Pharmacy", location="Downtown", contact_number="555-0101")
-            db.add(store)
+            stores = [Store(id=1, name="Main St. Central Hub", location="Downtown Center", contact_number="555-0101")]
+            
+            locations = [
+                "North Gate", "Riverside", "East Hill", "West Park", "Old Town", 
+                "Central Plaza", "South Shore", "Garden District", "High Ridge", "Harbor View",
+                "Pine Valley", "Oak Creek", "Maple Square", "Sunrise Heights", "Valley Glen",
+                "Shadow Hills", "Lakeside", "Iron Forge"
+            ]
+            
+            for i, loc in enumerate(locations):
+                stores.append(Store(id=i+2, name=f"Regional Pharmacy {loc}", location=loc, contact_number=f"555-0{i+102}"))
+            
+            db.add_all(stores)
             db.flush()
-            print("Seeded default store.")
+            print(f"Seeded {len(stores)} stores.")
 
         # 3. Seed Users
         users_to_seed = [
@@ -64,9 +75,9 @@ def init_db():
                 db.add(user)
                 print(f"Seeded user: {u['username']}")
 
-        # 4. Seed Products & Inventory
+        # 4. Seed Products & Inventory for all 19 branches
         if not db.query(Product).first():
-            products = [
+            products_data = [
                 {"name": "Amoxicillin 500mg", "cat": "Antibiotics", "price": 12.50, "cost": 8.00},
                 {"name": "Paracetamol 500mg", "cat": "Analgesics", "price": 5.00, "cost": 2.00},
                 {"name": "Metformin 500mg", "cat": "Antidiabetic", "price": 15.00, "cost": 10.00},
@@ -79,54 +90,75 @@ def init_db():
                 {"name": "Ibuprofen 400mg", "cat": "Analgesics", "price": 7.50, "cost": 3.50}
             ]
             
-            for p_data in products:
+            all_stores = db.query(Store).all()
+            for p_data in products_data:
                 prod = Product(name=p_data["name"], category=p_data["cat"], is_prescription_required=True)
                 db.add(prod)
                 db.flush()
                 
-                inv = Inventory(store_id=1, product_id=prod.id, reorder_level=10)
-                db.add(inv)
-                db.flush()
-                
-                # Add two batches per product (one near expiry)
-                batch1 = Batch(
-                    inventory_id=inv.id, batch_number=f"B-{prod.id}-01", 
-                    expiry_date=(datetime.now() + timedelta(days=random.randint(400, 700))).date(),
-                    cost_price=p_data["cost"], selling_price=p_data["price"],
-                    initial_quantity=100, current_quantity=85
-                )
-                batch2 = Batch(
-                    inventory_id=inv.id, batch_number=f"B-{prod.id}-XPR", 
-                    expiry_date=(datetime.now() + timedelta(days=random.randint(15, 25))).date(),
-                    cost_price=p_data["cost"], selling_price=p_data["price"],
-                    initial_quantity=50, current_quantity=12
-                )
-                db.add_all([batch1, batch2])
-            print("Seeded products & inventory.")
-
-        # 5. Seed 7-Day Sales History
-        if not db.query(Sale).first():
-            all_batches = db.query(Batch).all()
-            assoc = db.query(User).filter(User.username == "associate01").first()
-            
-            for i in range(7):
-                sale_date = datetime.now() - timedelta(days=i)
-                for _ in range(random.randint(3, 8)):
-                    sale = Sale(store_id=1, associate_id=assoc.id, total_amount=0, created_at=sale_date)
-                    db.add(sale)
+                # Add to EVERY store
+                for store in all_stores:
+                    inv = Inventory(store_id=store.id, product_id=prod.id, reorder_level=10)
+                    db.add(inv)
                     db.flush()
                     
-                    total = 0
-                    for _ in range(random.randint(1, 4)):
-                        b = random.choice(all_batches)
-                        qty = random.randint(1, 3)
-                        item_total = qty * float(b.selling_price)
-                        item = SaleItem(sale_id=sale.id, batch_id=b.id, quantity=qty, unit_price=b.selling_price, subtotal=item_total)
-                        db.add(item)
-                        total += item_total
-                    
-                    sale.total_amount = total
-            print("Seeded 7-day sales history.")
+                    # Randomize stock levels across the network
+                    for i in range(random.randint(1, 2)):
+                        # Some stores have low stock on purpose
+                        qty = random.randint(5, 50) if random.random() > 0.15 else random.randint(1, 8)
+                        batch = Batch(
+                            inventory_id=inv.id, batch_number=f"B-{store.id}-{prod.id}-{i}", 
+                            expiry_date=(datetime.now() + timedelta(days=random.randint(20, 600))).date(),
+                            cost_price=p_data["cost"], selling_price=p_data["price"],
+                            initial_quantity=qty + 20, current_quantity=qty
+                        )
+                        db.add(batch)
+            print(f"Seeded products & inventory for {len(all_stores)} stores.")
+
+        # 5. Network-Wide 7-Day Sales History
+        if not db.query(Sale).first():
+            all_batches = db.query(Batch).all()
+            # Map batches to stores
+            from collections import defaultdict
+            store_batches = defaultdict(list)
+            for b in all_batches:
+                inv = db.query(Inventory).get(b.inventory_id)
+                store_batches[inv.store_id].append(b)
+                
+            all_stores = db.query(Store).all()
+            admin_user = db.query(User).filter(User.username == "admin").first()
+            
+            for store in all_stores:
+                for i in range(7):
+                    sale_date = datetime.now() - timedelta(days=i)
+                    # Different stores have different volume
+                    tx_count = random.randint(8, 25) if store.id == 1 else random.randint(5, 15)
+                    for _ in range(tx_count):
+                        sale = Sale(
+                            store_id=store.id, 
+                            user_id=admin_user.id, 
+                            customer_name="Retail Customer",
+                            total_amount=0, 
+                            created_at=sale_date,
+                            payment_method="UPI" if random.random() > 0.5 else "Cash"
+                        )
+                        db.add(sale)
+                        db.flush()
+                        
+                        total = 0
+                        batches = store_batches[store.id]
+                        if not batches: continue
+                        
+                        for _ in range(random.randint(1, 3)):
+                            b = random.choice(batches)
+                            qty = random.randint(1, 3)
+                            item_total = qty * float(b.selling_price)
+                            item = SaleItem(sale_id=sale.id, batch_id=b.id, quantity=qty, unit_price=b.selling_price, subtotal=item_total)
+                            db.add(item)
+                            total += item_total
+                        
+                        sale.total_amount = total
+            print(f"Seeded massive 7-day sales network cross-linked for {len(all_stores)} stores.")
 
         db.commit()
     except Exception as e:
