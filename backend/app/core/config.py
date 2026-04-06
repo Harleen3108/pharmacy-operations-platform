@@ -18,14 +18,14 @@ class Settings(BaseSettings):
     CORS_ORIGINS: List[str] = [
         "http://localhost:5173", 
         "http://localhost:3000",
-        "https://pharmacy-operations-platform-s17l.vercel.app"
+        "https://pharmacy-operations-platform.vercel.app"
     ]
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Any) -> Any:
         # Default production origin that should always be allowed
-        prod_origin = "https://pharmacy-operations-platform-s17l.vercel.app"
+        prod_origin = "https://pharmacy-operations-platform.vercel.app"
         
         origins = []
         if isinstance(v, str):
