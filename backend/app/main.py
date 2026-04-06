@@ -3,12 +3,65 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import RedirectResponse
 from app.api.v1 import auth, inventory, sales, analytics, ai, users, roles, stores, prescriptions, transfers
 from app.core.config import settings
+from app.db.session import engine, Base
+# Import models to ensure they are registered with Base
+from app.models import models
 
 app = FastAPI(
     title="OMNICHANNEL PHARMACY OPERATIONS PLATFORM API",
     description="Backend services for omnichannel pharmacy chain operations.",
     version="1.0.0"
 )
+
+# Create Database Tables on Startup
+Base.metadata.create_all(bind=engine)
+
+def init_db():
+    from app.db.session import SessionLocal
+    from app.models.models import Role, Store, User
+    from app.core.security import get_password_hash
+    
+    db = SessionLocal()
+    try:
+        # 1. Seed Roles
+        if not db.query(Role).first():
+            roles = [
+                Role(id=1, name="Admin", description="System Administrator"),
+                Role(id=2, name="Supervisor", description="Store Supervisor"),
+                Role(id=3, name="Pharmacist", description="Licensed Pharmacist"),
+                Role(id=4, name="Associate", description="Sales Associate")
+            ]
+            db.add_all(roles)
+            db.flush()
+            print("Seeded roles.")
+
+        # 2. Seed Default Store
+        if not db.query(Store).first():
+            store = Store(id=1, name="Main St. Central Pharmacy", location="Downtown", contact_number="555-0101")
+            db.add(store)
+            db.flush()
+            print("Seeded default store.")
+
+        # 3. Seed Admin User
+        if not db.query(User).filter(User.username == "admin").first():
+            admin = User(
+                username="admin", 
+                email="admin@pharmacy.com",
+                password_hash=get_password_hash("admin123"), # Default password
+                role_id=1,
+                store_id=1,
+                full_name="System Administrator"
+            )
+            db.add(admin)
+            db.commit()
+            print("Seeded admin user.")
+    except Exception as e:
+        print(f"Error seeding database: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+init_db()
 
 # Set up CORS - Explicit origins required for credentialed requests
 app.add_middleware(
