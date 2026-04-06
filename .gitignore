@@ -1,24 +1,78 @@
-# Python dependencies
+# --- Python Settings ---
 backend/venv/
 backend/.venv/
 .venv/
+venv/
+ENV/
+env/
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
 
-# Node dependencies
-frontend/node_modules/
+# --- Node Settings ---
 node_modules/
+frontend/node_modules/
 frontend/dist/
+dist/
+.npm
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
 
-# Environment files
+# --- Environment & Sensitive Data ---
 .env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 backend/.env
+frontend/.env
 frontend/.env.local
+backend/*.db
+backend/*.sqlite3
+*.db
+*.sqlite3
 
-# Databases
-backend/pharmacy.db
-backend/test.db
-
-# OS files
+# --- OS & IDE Settings ---
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# --- Misc ---
+.vercel/
+.render/
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*

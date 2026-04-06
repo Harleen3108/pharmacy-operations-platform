@@ -25,15 +25,29 @@ class Settings(BaseSettings):
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Any) -> Any:
+        # Default production origin that should always be allowed
+        prod_origin = "https://pharmacy-operations-platform-s17l.vercel.app"
+        
+        origins = []
         if isinstance(v, str):
             if v.startswith("["):
                 import json
                 try:
-                    return json.loads(v)
+                    origins = json.loads(v)
                 except:
-                    return [i.strip() for i in v.split(",")]
-            return [i.strip() for i in v.split(",")]
-        return v
+                    origins = [i.strip() for i in v.split(",")]
+            else:
+                origins = [i.strip() for i in v.split(",")]
+        elif isinstance(v, list):
+            origins = v
+        else:
+            return v
+
+        # Ensure production origin is always present
+        if prod_origin not in origins:
+            origins.append(prod_origin)
+            
+        return origins
     
     GEMINI_API_KEY: str = ""
 
