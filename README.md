@@ -95,5 +95,3 @@ graph TD
 - **High-Density UI**: Optimized for pharmacists who need to see stock levels and shelf locations in seconds.
 - **Scalability**: Sub-second API response times and robust data modeling for thousands of SKUs.
 
----
-*Created for the Pharmacy Operations Hackathon 2024.*
