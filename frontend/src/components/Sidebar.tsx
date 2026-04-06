@@ -118,7 +118,11 @@ export const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
     },
   ];
 
-    const activeRole = role || 'Associate';
+    const roleMapping: Record<string, string> = {
+      'Admin': 'District Admin',
+      'Supervisor': 'Store Supervisor'
+    };
+    const activeRole = roleMapping[role] || role || 'Associate';
     const filteredItems = navItems.filter(item => item.roles.includes(activeRole));
   
     return (
@@ -128,9 +132,10 @@ export const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
           animate={{ 
             width: isCollapsed ? 80 : 256
           }}
+          style={{ minWidth: isCollapsed ? '80px' : '256px' }}
           transition={{ type: 'spring', damping: 25, stiffness: 120 }}
           className={cn(
-            "bg-white text-slate-600 flex flex-col h-screen sticky top-0 border-r border-slate-100 shrink-0 relative z-30 transition-shadow w-full",
+            "bg-white text-slate-600 flex flex-col h-screen sticky top-0 border-r border-slate-100 shrink-0 relative z-30 transition-shadow",
             !isCollapsed && "shadow-2xl md:shadow-none"
           )}
         >
