@@ -26,6 +26,7 @@ class User(Base):
     role_id = Column(Integer, ForeignKey("roles.id"))
     store_id = Column(Integer, ForeignKey("stores.id"))
     full_name = Column(String(100))
+    phone_number = Column(String(20))
     is_active = Column(Boolean, default=True)
 
 class Product(Base):

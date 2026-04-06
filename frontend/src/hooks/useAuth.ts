@@ -7,6 +7,7 @@ interface AuthState {
   role: UserRole;
   storeId: string | null;
   storeName: string | null;
+  fullName: string | null;
   loading: boolean;
 }
 
@@ -16,6 +17,7 @@ export const useAuth = () => {
     role: 'User',
     storeId: null,
     storeName: null,
+    fullName: null,
     loading: true,
   });
 
@@ -24,6 +26,7 @@ export const useAuth = () => {
     const role = localStorage.getItem('user_role') as UserRole;
     const storeId = localStorage.getItem('store_id');
     const storeName = localStorage.getItem('store_name');
+    const fullName = localStorage.getItem('full_name');
 
     if (token && role) {
       setAuth({
@@ -31,6 +34,7 @@ export const useAuth = () => {
         role: role,
         storeId: storeId,
         storeName: storeName,
+        fullName: fullName,
         loading: false,
       });
     } else {
@@ -39,6 +43,7 @@ export const useAuth = () => {
         role: 'User',
         storeId: null,
         storeName: null,
+        fullName: null,
         loading: false,
       });
     }
@@ -49,11 +54,13 @@ export const useAuth = () => {
     localStorage.removeItem('user_role');
     localStorage.removeItem('store_id');
     localStorage.removeItem('store_name');
+    localStorage.removeItem('full_name');
     setAuth({
       isAuthenticated: false,
       role: 'User',
       storeId: null,
       storeName: null,
+      fullName: null,
       loading: false,
     });
     window.location.href = '/login';

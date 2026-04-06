@@ -26,7 +26,8 @@ def login(db: Session = Depends(get_db), form_data: OAuth2PasswordRequestForm = 
         "token_type": "bearer",
         "role": role.name if role else "User",
         "store_id": user.store_id,
-        "store_name": store.name if store else "Main Branch"
+        "store_name": store.name if store else "Main Branch",
+        "full_name": user.full_name or user.username
     }
 
 @router.get("/me")
@@ -41,5 +42,6 @@ def get_me(user_name: str = "admin", db: Session = Depends(get_db)):
         "username": user.username, 
         "role": role.name if role else "User", 
         "store_id": user.store_id,
-        "store_name": store.name if store else "Main Branch"
+        "store_name": store.name if store else "Main Branch",
+        "full_name": user.full_name or user.username
     }

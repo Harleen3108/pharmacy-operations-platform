@@ -66,8 +66,8 @@ const SafeDeleteModal = ({ isOpen, onClose, onConfirm, personnelName, isDeleting
   );
 };
 
-// Induction Drawer (Slider)
-const InductionDrawer = ({ isOpen, onClose, roles, stores, formData, setFormData, handleSubmit, isPending }: any) => {
+// Personnel Drawer (Induction & Editing)
+const PersonnelDrawer = ({ isOpen, onClose, roles, stores, formData, setFormData, handleSubmit, isPending, mode = 'induction' }: any) => {
   return (
     <AnimatePresence>
       {isOpen && (
@@ -90,8 +90,8 @@ const InductionDrawer = ({ isOpen, onClose, roles, stores, formData, setFormData
           >
             <div className="flex justify-between items-center mb-10 pb-6 border-b border-slate-50">
                 <h3 className="text-2xl font-black text-[#111827] flex items-center gap-3">
-                    <UserPlus className="w-7 h-7 text-emerald-600" />
-                    Personnel Induction
+                    {mode === 'induction' ? <UserPlus className="w-7 h-7 text-emerald-600" /> : <Edit2 className="w-7 h-7 text-emerald-600" />}
+                    {mode === 'induction' ? 'Personnel Induction' : 'Personnel Modification'}
                 </h3>
                 <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-full transition-colors text-slate-400">
                     <X className="w-6 h-6" />
@@ -131,6 +131,20 @@ const InductionDrawer = ({ isOpen, onClose, roles, stores, formData, setFormData
                     </div>
 
                     <div className="space-y-2">
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Contact Protocol (Phone)</label>
+                        <div className="relative group">
+                          <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-[#065F46] transition-colors" />
+                          <input 
+                            type="text" 
+                            placeholder="+91 XXXXX XXXXX"
+                            value={formData.phone_number}
+                            onChange={(e) => setFormData({...formData, phone_number: e.target.value})}
+                            className="w-full pl-12 pr-6 py-4 bg-slate-50 border-none rounded-2xl text-sm font-bold focus:ring-2 focus:ring-emerald-500/20 focus:bg-white transition-all outline-none"
+                          />
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Registry Username</label>
                         <input 
                           type="text" 
@@ -143,12 +157,14 @@ const InductionDrawer = ({ isOpen, onClose, roles, stores, formData, setFormData
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Access Pass (Security PIN)</label>
+                        <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                            Access Pass (Security PIN) {mode === 'edit' && <span className="text-rose-400 lowercase">(leave blank to keep current)</span>}
+                        </label>
                         <div className="relative group">
                           <Key className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 group-focus-within:text-[#065F46] transition-colors" />
                           <input 
                             type="password" 
-                            required
+                            required={mode === 'induction'}
                             placeholder="••••••••"
                             value={formData.password}
                             onChange={(e) => setFormData({...formData, password: e.target.value})}
@@ -194,7 +210,7 @@ const InductionDrawer = ({ isOpen, onClose, roles, stores, formData, setFormData
                       disabled={isPending}
                       className="w-full py-4 bg-[#065F46] text-white rounded-2xl text-xs font-black uppercase tracking-[0.2em] hover:bg-[#047857] shadow-2xl shadow-emerald-900/20 disabled:opacity-50 transition-all transform active:scale-[0.98]"
                     >
-                      {isPending ? 'Synchronizing...' : 'Finalize Induction'}
+                      {isPending ? 'Synchronizing...' : mode === 'induction' ? 'Finalize Induction' : 'Update Record'}
                     </button>
                     <button 
                       type="button" 
@@ -213,8 +229,10 @@ const InductionDrawer = ({ isOpen, onClose, roles, stores, formData, setFormData
 };
 
 export const StaffManagement = () => {
-  const { users, roles, stores, createStaff, deleteStaff } = useStaff();
+  const { users, roles, stores, createStaff, updateStaff, deleteStaff } = useStaff();
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [drawerMode, setDrawerMode] = useState<'induction' | 'edit'>('induction');
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   
   // Modal State
@@ -224,6 +242,7 @@ export const StaffManagement = () => {
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
+    phone_number: '',
     username: '',
     password: '',
     role_id: '',
@@ -233,19 +252,49 @@ export const StaffManagement = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await createStaff.mutateAsync({
+      const payload = {
         ...formData,
         username: formData.username.trim(),
         email: formData.email.trim(),
         role_id: parseInt(formData.role_id),
         store_id: parseInt(formData.store_id)
-      });
+      };
+
+      if (drawerMode === 'edit' && editingId) {
+        // Remove empty password for updates
+        if (!payload.password) delete (payload as any).password;
+        await updateStaff.mutateAsync({ id: editingId, ...payload });
+      } else {
+        await createStaff.mutateAsync(payload);
+      }
+      
       setIsFormOpen(false);
-      setFormData({ full_name: '', email: '', username: '', password: '', role_id: '', store_id: '' });
+      resetForm();
     } catch (error) {
-       const detail = (error as any).response?.data?.detail || 'Error creating staff member';
+       const detail = (error as any).response?.data?.detail || `Error ${drawerMode === 'edit' ? 'updating' : 'creating'} staff member`;
        alert(detail);
     }
+  };
+
+  const resetForm = () => {
+    setFormData({ full_name: '', email: '', phone_number: '', username: '', password: '', role_id: '', store_id: '' });
+    setEditingId(null);
+    setDrawerMode('induction');
+  };
+
+  const handleEditInitiated = (staff: any) => {
+    setEditingId(staff.id);
+    setFormData({
+        full_name: staff.full_name || '',
+        email: staff.email || '',
+        phone_number: staff.phone_number || '',
+        username: staff.username || '',
+        password: '', // Password stays empty unless changing
+        role_id: staff.role_id?.toString() || '',
+        store_id: staff.store_id?.toString() || ''
+    });
+    setDrawerMode('edit');
+    setIsFormOpen(true);
   };
 
   const handleDelete = async () => {
@@ -271,7 +320,10 @@ export const StaffManagement = () => {
           <p className="text-slate-500 font-medium text-sm">Orchestrate clinical talent and branch assignments across the network.</p>
         </div>
         <button 
-          onClick={() => setIsFormOpen(!isFormOpen)}
+          onClick={() => {
+              if (isFormOpen) resetForm();
+              setIsFormOpen(!isFormOpen);
+          }}
           className="px-8 py-3.5 bg-[#065F46] text-white rounded-[18px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-emerald-900/20 hover:bg-[#047857] transition-all flex items-center gap-3 transform active:scale-95"
         >
           {isFormOpen ? <X className="w-5 h-5" /> : <UserPlus className="w-5 h-5" />}
@@ -307,15 +359,19 @@ export const StaffManagement = () => {
 
         {/* Main List & Form Area */}
         <div className="lg:col-span-3 space-y-8">
-           <InductionDrawer 
+           <PersonnelDrawer 
              isOpen={isFormOpen} 
-             onClose={() => setIsFormOpen(false)}
+             onClose={() => {
+                 setIsFormOpen(false);
+                 resetForm();
+             }}
+             mode={drawerMode}
              roles={roles}
              stores={stores}
              formData={formData}
              setFormData={setFormData}
              handleSubmit={handleSubmit}
-             isPending={createStaff.isPending}
+             isPending={createStaff.isPending || updateStaff.isPending}
            />
 
            <div className="bg-white rounded-[40px] border border-slate-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col group/table">
@@ -383,7 +439,10 @@ export const StaffManagement = () => {
                              </td>
                              <td className="px-6 py-6 text-right">
                                 <div className="flex items-center justify-end gap-3 translate-x-2 group-hover/row:translate-x-0 transition-all duration-300">
-                                   <button className="p-3 text-slate-400 hover:text-[#065F46] hover:bg-emerald-50 rounded-2xl transition-all">
+                                   <button 
+                                     onClick={() => handleEditInitiated(staff)}
+                                     className="p-3 text-slate-400 hover:text-[#065F46] hover:bg-emerald-50 rounded-2xl transition-all"
+                                   >
                                       <Edit2 className="w-4.5 h-4.5" />
                                    </button>
                                    <button 

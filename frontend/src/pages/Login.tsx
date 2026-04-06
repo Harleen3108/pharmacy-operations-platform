@@ -39,6 +39,7 @@ export const Login = () => {
       localStorage.setItem('user_role', response.role);
       localStorage.setItem('store_id', response.store_id);
       localStorage.setItem('store_name', response.store_name);
+      localStorage.setItem('full_name', response.full_name);
       
       // Redirect based on role immediately
       switch (response.role) {

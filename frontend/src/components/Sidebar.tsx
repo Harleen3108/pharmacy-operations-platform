@@ -27,7 +27,15 @@ interface SidebarProps {
 }
 
 export const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
-  const { role, logout, storeName } = useAuth();
+  const { role, logout, storeName, fullName } = useAuth();
+  
+  const portalNames: Record<string, string> = {
+    'District Admin': 'Admin Portal',
+    'Associate': 'Associate Panel',
+    'Store Supervisor': 'Supervisor Panel',
+    'Pharmacist': 'Pharmacist Panel'
+  };
+  const portalName = portalNames[role] || 'User Portal';
 
   const navItems = [
     { 
@@ -137,8 +145,8 @@ export const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
             animate={{ opacity: 1, x: 0 }}
             className="overflow-hidden whitespace-nowrap"
           >
-            <h1 className="text-[#111827] font-extrabold text-base leading-tight tracking-tight">Clinical Atelier</h1>
-            <p className="text-[9px] text-slate-400 font-bold tracking-[0.1em] uppercase">{role} @ {storeName || 'Main Branch'}</p>
+            <h1 className="text-[#111827] font-extrabold text-base leading-tight tracking-tight">{portalName}</h1>
+            <p className="text-[9px] text-slate-400 font-bold tracking-[0.1em] uppercase">Clinical Atelier</p>
           </motion.div>
         )}
       </div>
@@ -177,6 +185,14 @@ export const Sidebar = ({ isCollapsed, onToggle }: SidebarProps) => {
             <Plus className="w-4 h-4" />
             Quick Dispense
           </button>
+        )}
+        
+        {!isCollapsed && (
+          <div className="px-3 py-4 mb-4 bg-slate-50/50 rounded-xl border border-slate-100/50 mx-1">
+            <p className="text-[10px] font-black text-[#065F46] uppercase tracking-widest mb-1">{fullName || 'User'}</p>
+            <p className="text-[9px] text-slate-500 font-bold truncate">{storeName || 'Main Branch'}</p>
+            <p className="text-[9px] text-slate-400 font-medium italic mt-1">{portalName}</p>
+          </div>
         )}
 
         <NavLink 

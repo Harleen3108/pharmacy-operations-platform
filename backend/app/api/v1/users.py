@@ -12,6 +12,7 @@ class UserBase(BaseModel):
     username: str
     email: EmailStr
     full_name: str
+    phone_number: Optional[str] = None
     role_id: int
     store_id: int
     is_active: bool = True
@@ -20,8 +21,11 @@ class UserCreate(UserBase):
     password: str
 
 class UserUpdate(BaseModel):
+    username: Optional[str] = None
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None
+    phone_number: Optional[str] = None
+    password: Optional[str] = None
     role_id: Optional[int] = None
     store_id: Optional[int] = None
     is_active: Optional[bool] = None
@@ -45,6 +49,7 @@ def get_users(db: Session = Depends(get_db)):
             "username": user.username,
             "email": user.email,
             "full_name": user.full_name,
+            "phone_number": user.phone_number,
             "role_id": user.role_id,
             "store_id": user.store_id,
             "is_active": user.is_active,
@@ -68,6 +73,7 @@ def create_user(user_data: UserCreate, db: Session = Depends(get_db)):
         role_id=user_data.role_id,
         store_id=user_data.store_id,
         full_name=user_data.full_name,
+        phone_number=user_data.phone_number,
         is_active=user_data.is_active
     )
     db.add(db_user)
@@ -89,9 +95,19 @@ def update_user(user_id: int, user_data: UserUpdate, db: Session = Depends(get_d
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
         
-    for var, value in vars(user_data).items():
+    for var, value in user_data.model_dump(exclude_unset=True).items():
         if value is not None:
-            setattr(db_user, var, value)
+            if var == "password":
+                setattr(db_user, "password_hash", get_password_hash(value))
+            elif var == "username":
+                # Check for uniqueness if username is changing
+                if value != db_user.username:
+                    existing = db.query(User).filter(User.username == value).first()
+                    if existing:
+                        raise HTTPException(status_code=400, detail="Username already in use")
+                setattr(db_user, var, value)
+            else:
+                setattr(db_user, var, value)
             
     db.commit()
     db.refresh(db_user)
