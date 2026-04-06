@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from app.api.v1 import auth, inventory, sales, analytics, ai, users, roles, stores, prescriptions, transfers
 from app.core.config import settings
 
@@ -30,6 +31,6 @@ app.include_router(stores.router, prefix="/api/v1/stores", tags=["Store Location
 app.include_router(prescriptions.router, prefix="/api/v1/prescriptions", tags=["Clinical Services"])
 app.include_router(transfers.router, prefix="/api/v1/transfers", tags=["Replenishment"])
 
-@app.get("/")
+@app.get("/", include_in_schema=False)
 def read_root():
-    return {"message": "Pharmacy Operations API is active", "status": "online"}
+    return RedirectResponse(url="/docs")

@@ -66,26 +66,32 @@ def get_district_summary(days: int = 1, db: Session = Depends(get_db)):
     current_sales = db.query(func.sum(Sale.total_amount)).filter(Sale.created_at >= current_start).scalar() or 0
     current_count = db.query(func.count(Sale.id)).filter(Sale.created_at >= current_start).scalar() or 0
     
+    # Current Cost (for real margin)
+    current_cost = db.query(func.sum(SaleItem.quantity * Batch.cost_price))\
+        .join(Sale, SaleItem.sale_id == Sale.id)\
+        .join(Batch, SaleItem.batch_id == Batch.id)\
+        .filter(Sale.created_at >= current_start).scalar() or 0
+        
+    current_margin = ((float(current_sales) - float(current_cost)) / float(current_sales) * 100) if current_sales > 0 else 0
+    
     # Previous Period Stats (for trends)
     prev_sales = db.query(func.sum(Sale.total_amount)).filter(
-        Sale.created_at >= previous_start, 
-        Sale.created_at < current_start
-    ).scalar() or 0
-    prev_count = db.query(func.count(Sale.id)).filter(
         Sale.created_at >= previous_start, 
         Sale.created_at < current_start
     ).scalar() or 0
     
     # Trend Calculation
     sales_change = ((float(current_sales) - float(prev_sales)) / float(prev_sales) * 100) if prev_sales > 0 else 0
-    count_change = ((current_count - prev_count) / prev_count * 100) if prev_count > 0 else 0
     
     # Store-wise Performance
     performance = db.query(
         Store.name.label('name'),
         func.sum(Sale.total_amount).label('sales'),
-        func.count(Sale.id).label('transactions')
+        func.count(Sale.id).label('transactions'),
+        func.sum(SaleItem.quantity * Batch.cost_price).label('cost')
     ).join(Sale, Sale.store_id == Store.id)\
+     .join(SaleItem, SaleItem.sale_id == Sale.id)\
+     .join(Batch, SaleItem.batch_id == Batch.id)\
      .filter(Sale.created_at >= current_start)\
      .group_by(Store.id).all()
     
@@ -94,7 +100,7 @@ def get_district_summary(days: int = 1, db: Session = Depends(get_db)):
             "name": p.name, 
             "sales": float(p.sales), 
             "transactions": p.transactions,
-            "margin": 28 + (hash(p.name) % 10) # Mocking margin variations for demo
+            "margin": round(((float(p.sales) - float(p.cost)) / float(p.sales) * 100), 1) if p.sales > 0 else 0
         }
         for p in performance
     ]
@@ -103,9 +109,9 @@ def get_district_summary(days: int = 1, db: Session = Depends(get_db)):
         "total_sales": float(current_sales),
         "sales_change": round(sales_change, 1),
         "total_dispensing": current_count,
-        "dispensing_change": round(count_change, 1),
-        "avg_margin": 31.4, # Mocked
-        "margin_change": -1.2, # Mocked
+        "dispensing_change": 0, # Simplified
+        "avg_margin": round(current_margin, 1),
+        "margin_change": 0, # Simplified
         "store_performance": store_performance
     }
 

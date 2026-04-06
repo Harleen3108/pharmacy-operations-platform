@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 from app.db.session import get_db
 from app.models.models import Product, Batch, Inventory, Sale, PurchaseOrder
+from app.core.ai_client import get_ai_response, get_replenishment_analysis
 import random
 
 router = APIRouter()
@@ -24,21 +25,28 @@ class ReorderRequest(BaseModel):
 
 @router.post("/query", response_model=AIResponse)
 def query_ai_assistant(query: AIQuery, db: Session = Depends(get_db)):
-    # Mocking LLM logic with DB facts
-    low_stock_count = db.query(Inventory).join(Batch).group_by(Inventory.id).having(
+    # Fetch factual data to provide context to the AI
+    low_stock_items = db.query(Product.name, func.sum(Batch.current_quantity).label('qty')).join(Inventory).join(Batch).group_by(Product.id).having(
         func.sum(Batch.current_quantity) <= Inventory.reorder_level
-    ).count()
+    ).all()
     
-    responses = [
-        f"I've detected {low_stock_count} items with low stock levels. We recommend a replenishment order.",
-        "Sales trends are positive for this week, with a 12% increase in respiratory meds.",
-         "Inventory health is stable, but 3 batches are approaching expiry in the next 30 days."
-    ]
+    low_stock_list = [f"{item.name} ({item.qty} units left)" for item in low_stock_items]
+    
+    if "replenish" in query.query.lower() or "stock" in query.query.lower():
+        answer = get_replenishment_analysis(low_stock_list)
+    else:
+        # Standard query with platform context
+        context_prompt = f"""
+        User Query: {query.query}
+        Platform Context: We have {len(low_stock_items)} items with low stock.
+        Answer as a pharmacy operations AI assistant. Keep it concise.
+        """
+        answer = get_ai_response(context_prompt)
     
     return {
-        "answer": random.choice(responses),
-        "action_suggested": "Review replenishment suggestions?",
-        "data": {"low_stock_items": low_stock_count, "confidence": 0.92}
+        "answer": answer,
+        "action_suggested": "Review replenishment suggestions?" if low_stock_items else None,
+        "data": {"low_stock_count": len(low_stock_items), "confidence": 0.95}
     }
 
 @router.post("/apply-reorder")
@@ -60,17 +68,34 @@ def get_demand_forecast(product_id: int, db: Session = Depends(get_db)):
     if not product:
         raise HTTPException(status_code=404, detail="Product not found")
         
+    # Fetch historical sales data for the last 30 days
+    thirty_days_ago = datetime.now() - timedelta(days=30)
+    sales = db.query(func.sum(SaleItem.quantity)).join(Sale).join(Batch).join(Inventory).filter(
+        Inventory.product_id == product_id,
+        Sale.created_at >= thirty_days_ago
+    ).scalar() or 0
+    
     inv = db.query(Inventory).filter(Inventory.product_id == product_id).first()
     current_stock = 0
     if inv:
         current_stock = db.query(func.sum(Batch.current_quantity)).filter(Batch.inventory_id == inv.id).scalar() or 0
+    
+    prompt = f"""
+    Product: {product.name}
+    Current Stock: {current_stock}
+    Sales (Last 30 days): {sales}
+    
+    As a pharmacy inventory expert, forecast the demand for next month and recommend a reorder quantity. 
+    Keep the recommendation concise.
+    """
+    recommendation = get_ai_response(prompt)
         
     return {
         "product_id": product_id,
         "product_name": product.name,
-        "forecasted_demand": current_stock + 50, # Simple mock forecast
+        "historical_sales_30d": sales,
         "current_stock": current_stock,
-        "recommendation": f"Add {50} units to safety stock"
+        "ai_recommendation": recommendation
     }
 
 @router.get("/anomalies")
