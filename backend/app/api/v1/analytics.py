@@ -3,7 +3,7 @@ from typing import List, Dict
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from app.db.session import get_db
-from app.models.models import Sale, Batch, Store, Inventory
+from app.models.models import Sale, Batch, Store, Inventory, SaleItem
 from datetime import datetime, timedelta
 
 router = APIRouter()
