@@ -27,13 +27,14 @@ export const Layout = ({ children }: { children: React.ReactNode }) => {
         />
       )}
 
-      {/* Sidebar - Positioned for Mobile Drawer and Desktop Sidebar */}
-      <div className={cn(
-        "fixed inset-y-0 left-0 z-[50] transition-transform duration-300 transform md:relative md:translate-x-0",
-        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+      {/* Sidebar - Prevent squishing on desktop with flex-shrink-0 and min-width */}
+      <aside className={cn(
+        "fixed inset-y-0 left-0 z-[50] transition-transform duration-300 transform md:relative md:translate-x-0 flex-shrink-0",
+        isMobileMenuOpen ? "translate-x-0" : "-translate-x-full",
+        !isSidebarCollapsed ? "w-64" : "w-20"
       )}>
         <Sidebar isCollapsed={isSidebarCollapsed} onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)} />
-      </div>
+      </aside>
 
       <div className="flex-1 flex flex-col min-w-0 transition-all duration-300">
         <header className="h-20 bg-white border-b border-slate-100 px-4 md:px-8 flex items-center justify-between sticky top-0 z-10 font-outfit">
