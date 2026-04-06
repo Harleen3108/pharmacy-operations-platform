@@ -42,11 +42,25 @@ class Settings(BaseSettings):
         else:
             return v
 
+        # Cleanup: Ensure origins are just domains (no paths, no trailing slashes)
+        clean_origins = []
+        for o in origins:
+            if isinstance(o, str):
+                # Strip trailing slash and any path components
+                from urllib.parse import urlparse
+                parsed = urlparse(o)
+                if parsed.scheme and parsed.netloc:
+                    clean_origins.append(f"{parsed.scheme}://{parsed.netloc}")
+                else:
+                    clean_origins.append(o.rstrip('/'))
+            else:
+                clean_origins.append(o)
+
         # Ensure production origin is always present
-        if prod_origin not in origins:
-            origins.append(prod_origin)
+        if prod_origin not in clean_origins:
+            clean_origins.append(prod_origin)
             
-        return origins
+        return clean_origins
     
     GEMINI_API_KEY: str = ""
 
