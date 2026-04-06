@@ -1,5 +1,5 @@
-from pydantic_settings import BaseSettings
-from typing import List
+from typing import List, Union, Any
+from pydantic import field_validator
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Pharmacy Operations Platform"
@@ -19,6 +19,13 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "https://pharmacy-operations-platform.vercel.app"
     ]
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def assemble_cors_origins(cls, v: Any) -> Union[List[str], str]:
+        if isinstance(v, str) and not v.startswith("["):
+            return [i.strip() for i in v.split(",")]
+        return v
     
     GEMINI_API_KEY: str = ""
 
