@@ -63,6 +63,7 @@ class Settings(BaseSettings):
             
         return clean_origins
     
+    SEED_DB: bool = False
     GEMINI_API_KEY: str = ""
 
     class Config:
